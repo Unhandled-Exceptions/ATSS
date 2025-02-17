@@ -51,6 +51,9 @@ coverage.xml
 # Rope
 .ropeproject
 
+# Test Bed
+test-bed/
+
 # Django stuff:
 *.log
 *.pot
