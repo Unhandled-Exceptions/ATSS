@@ -1,0 +1,11 @@
+flight_id,airline,origin,destination,departure_time,arrival_time,aircraft_type,priority_level
+FL001,SpiceJet,MAA,AMD,04:00,06:52,Airbus A320,3
+FL002,SpiceJet,MAA,BOM,05:46,08:28,Boeing 777,3
+FL003,IndiGo,BLR,MAA,06:21,10:18,Boeing 737,3
+FL004,IndiGo,COK,MAA,07:56,10:27,Airbus A320,1
+FL005,Vistara,MAA,CCU,09:46,12:07,Embraer E190,3
+FL006,SpiceJet,CDG,MAA,10:03,21:10,Airbus A380,2
+FL007,Air India,MAA,AMD,11:14,14:29,Airbus A380,3
+FL008,Vistara,CCU,MAA,11:59,15:19,Embraer E190,3
+FL009,Vistara,MAA,HYD,13:27,17:19,Airbus A380,3
+FL010,Lufthansa,MAA,PNQ,14:55,16:38,Boeing 777,3
