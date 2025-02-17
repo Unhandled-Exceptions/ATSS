@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define KCYN  "\x1B[36m"
+
 void view_flight_schedules();
 void add_flight_schedules();
 void update_flight_schedules();
@@ -10,7 +12,7 @@ void view_crew_info();
 int main() {
 
     // Display the title and copyright
-    system("toilet -f smblock --filter border:metal \"  ATC  \" ");  
+    printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n",KCYN);
     printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
     
     printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
