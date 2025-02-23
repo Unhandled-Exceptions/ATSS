@@ -1,0 +1,1 @@
+Contains shell scripts to ease up our life ;)
