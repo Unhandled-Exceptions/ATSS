@@ -9,7 +9,7 @@ int view_flight_schedules_cb(void *, int, char **, char **);
 
 void add_flight_schedules(sqlite3 *db, char *err_msg);
 void update_flight_schedules();
-void delete_flight_schedules();
+void delete_flight_schedules(sqlite3 *db, char *err_msg);
 void view_crew_info();
 
 int main() {
@@ -59,7 +59,7 @@ int main() {
                 update_flight_schedules();
                 break;
             case 4:
-                delete_flight_schedules();
+                delete_flight_schedules(flight_db, err_msg);
                 break;
             case 5:
                 view_crew_info();
@@ -160,8 +160,28 @@ void update_flight_schedules(){
     printf("Update Flight Schedule : Not yet implemented !!!\n");
 }
 
-void delete_flight_schedules(){
-    printf("Delete Flight Schedule : Not yet implemented !!!\n");
+void delete_flight_schedules(sqlite3 *db, char *err_msg){
+    char *query_template = "DELETE FROM flights WHERE flight_id = %Q";
+
+    char flight_id[10];
+    printf("Enter Flight ID : ");
+    scanf("%9s",flight_id);
+    
+    char *query = sqlite3_mprintf(query_template, flight_id);
+    if (query == NULL) {
+        printf("Memory allocation for the query failed :(\n");
+    }
+
+    int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
+    
+    if (rc != SQLITE_OK) {
+        printf("SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        printf("Data entry removed successfully !\n");
+    }
+
+    sqlite3_free(query);
 } 
 
 void view_crew_info(){
