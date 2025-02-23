@@ -68,6 +68,9 @@ int main() {
 
 int view_flight_schedules(){
     char *query = "SELECT * FROM flights";
+    printf("-----------------------------------------------------------------------------\n");
+    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
+    printf("-----------------------------------------------------------------------------\n");
     int rc = sqlite3_exec(flight_db, query, view_flight_schedules_cb, 0, &err_msg);
     if (rc != SQLITE_OK ) {
         
@@ -79,6 +82,7 @@ int view_flight_schedules(){
         
         return 1;
     }
+    printf("-----------------------------------------------------------------------------\n");
     return 0;
 
 }
@@ -88,10 +92,14 @@ int view_flight_schedules_cb(void *NotUsed, int argc, char **argv,
     
     NotUsed = 0;
     
-    for (int i = 0; i < argc; i++) {
-        printf("%s -> %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-    }
-    printf("\n");
+    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", 
+        argv[0] ? argv[0] : "NULL", 
+        argv[1] ? argv[1] : "NULL", 
+        argv[2] ? argv[2] : "NULL", 
+        argv[3] ? argv[3] : "NULL", 
+        argv[4] ? argv[4] : "NULL", 
+        argv[5] ? argv[5] : "NULL");
+
     return 0;
 }
 
