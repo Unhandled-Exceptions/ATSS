@@ -63,3 +63,6 @@ docs/_build/
 
 # Python venv files
 venv/
+
+# Main database files
+data/flights.db
