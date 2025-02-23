@@ -1,15 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sqlite3.h>
 
 #define KCYN  "\x1B[36m"
 
-void view_flight_schedules();
+int view_flight_schedules();
+int view_flight_schedules_cb(void *, int, char **, char **);
+
 void add_flight_schedules();
 void update_flight_schedules();
 void delete_flight_schedules();
 void view_crew_info();
 
+sqlite3 *flight_db;
+char *err_msg = 0;
+
 int main() {
+
+    int rc = sqlite3_open("data/flights_small.db", &flight_db);
+
+    if (rc != SQLITE_OK) {
+        
+        fprintf(stderr, "Cannot open database: %s\n", 
+                sqlite3_errmsg(flight_db));
+        sqlite3_close(flight_db);
+        
+        return 1;
+    }
 
     // Display the title and copyright
     printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",KCYN);
@@ -24,7 +41,7 @@ int main() {
         
         switch(choice){
             case 1:
-                view_crew_info();
+                view_flight_schedules();
                 break;
             case 2:
                 add_flight_schedules();
@@ -36,10 +53,11 @@ int main() {
                 delete_flight_schedules();
                 break;
             case 5:
-                view_flight_schedules();
+                view_crew_info();
                 break;
             case 6:
                 printf("Bye !\n");
+                sqlite3_close(flight_db);
                 exit(0);
             default:
                 printf("Invalid choice !\n");
@@ -48,8 +66,33 @@ int main() {
     return 0;  
 }
 
-void view_flight_schedules(){
-    printf("View Flight Schedule : Not yet implemented !!!\n");
+int view_flight_schedules(){
+    char *query = "SELECT * FROM flights";
+    int rc = sqlite3_exec(flight_db, query, view_flight_schedules_cb, 0, &err_msg);
+    if (rc != SQLITE_OK ) {
+        
+        fprintf(stderr, "Failed to select data\n");
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+
+        sqlite3_free(err_msg);
+        sqlite3_close(flight_db);
+        
+        return 1;
+    }
+    return 0;
+
+}
+
+int view_flight_schedules_cb(void *NotUsed, int argc, char **argv, 
+                    char **azColName) {
+    
+    NotUsed = 0;
+    
+    for (int i = 0; i < argc; i++) {
+        printf("%s -> %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+    printf("\n");
+    return 0;
 }
 
 void add_flight_schedules(){

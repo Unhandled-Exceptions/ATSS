@@ -1,3 +1,4 @@
+# gcc -I lib/ -o bin/main.out src/main.c lib/sqlite3.c -lpthread -ldl
 .PHONY: all
 all: bin obj bin/atss
 
