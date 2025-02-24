@@ -75,9 +75,11 @@ int main() {
     return 0;  
 }
 
+
+// View flight schedule
 int view_flight_schedules(sqlite3 *db, char *err_msg){
     
-    char *query = "SELECT * FROM flights";
+    char *query = "SELECT * FROM flights ORDER BY departure_time;";
     
     printf("-----------------------------------------------------------------------------\n");
     printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
