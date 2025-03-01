@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <string.h>
 
 #define KCYN  "\x1B[36m"
+#define AIRPORT "MAA"
 
 int view_flight_schedules(sqlite3 *db, char *err_msg);
 int view_flight_schedules_cb(void *, int, char **, char **);
@@ -119,9 +121,9 @@ int view_flight_schedules_cb(void *NotUsed, int argc, char **argv,
 }
 
 void add_flight_schedules(sqlite3 *db, char *err_msg){
-    char *query_template = "INSERT INTO flights VALUES (%Q, %Q, %Q, %Q, %Q, %Q, %Q, %d)";
+    char *query_template = "INSERT INTO flights VALUES (%Q, %Q, %Q, %Q, %Q, %Q, %Q, %d, %Q)";
 
-    char flight_id[10], airline[25], origin[4], destination[4], departure_time[6], arrival_time[6], aircraft_type[31];
+    char flight_id[10], airline[25], origin[4], destination[4], departure_time[6], arrival_time[6], aircraft_type[31], runway_time[6];
     int priority_level;
     printf("Enter Flight ID : ");
     scanf("%9s",flight_id);
@@ -140,7 +142,13 @@ void add_flight_schedules(sqlite3 *db, char *err_msg){
     printf("Enter Priority Level : ");
     scanf("%d",&priority_level);
     
-    char *query = sqlite3_mprintf(query_template, flight_id, airline, origin, destination, departure_time, arrival_time, aircraft_type, priority_level);
+    if (strcmp(origin, AIRPORT)) {
+        strcpy(departure_time, runway_time);
+    } else if (strcpy(destination, AIRPORT)) {
+        strcpy(arrival_time, runway_time);
+    }
+
+    char *query = sqlite3_mprintf(query_template, flight_id, airline, origin, destination, departure_time, arrival_time, aircraft_type, priority_level, runway_time);
     if (query == NULL) {
         printf("Memory allocation for the query failed :(\n");
     }
