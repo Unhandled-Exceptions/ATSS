@@ -1,11 +1,11 @@
-flight_id,airline,origin,destination,departure_time,arrival_time,aircraft_type,priority_level
-FL001,SpiceJet,MAA,AMD,04:00,06:52,Airbus A320,3
-FL002,SpiceJet,MAA,BOM,05:46,08:28,Boeing 777,3
-FL003,IndiGo,BLR,MAA,06:21,10:18,Boeing 737,3
-FL004,IndiGo,COK,MAA,07:56,10:27,Airbus A320,1
-FL005,Vistara,MAA,CCU,09:46,12:07,Embraer E190,3
-FL006,SpiceJet,CDG,MAA,10:03,21:10,Airbus A380,2
-FL007,Air India,MAA,AMD,11:14,14:29,Airbus A380,3
-FL008,Vistara,CCU,MAA,11:59,15:19,Embraer E190,3
-FL009,Vistara,MAA,HYD,13:27,17:19,Airbus A380,3
-FL010,Lufthansa,MAA,PNQ,14:55,16:38,Boeing 777,3
+flight_id,airline,origin,destination,departure_time,arrival_time,aircraft_type,priority_level,runway_time
+FL001,British Airways,GOI,MAA,0000,0207,Boeing 777,3,0207
+FL002,SpiceJet,MAA,HYD,0105,0359,Boeing 777,3,0105
+FL003,IndiGo,HYD,MAA,0158,0426,Airbus A380,3,0426
+FL004,British Airways,HKG,MAA,0244,1104,Airbus A320,2,1104
+FL005,British Airways,MAA,SYD,0339,0928,Boeing 777,2,0339
+FL006,Air India,MAA,AMD,0525,0746,Airbus A380,3,0525
+FL007,Air India,DEL,MAA,0614,0924,Airbus A380,3,0924
+FL008,IndiGo,HYD,MAA,0810,1111,Airbus A380,3,1111
+FL009,Air India,MAA,PNQ,0843,1226,Airbus A380,3,0843
+FL010,Lufthansa,MAA,FRA,0917,1918,Airbus A320,2,0917

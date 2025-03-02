@@ -1,7 +1,17 @@
-# ATC
-## Air Traffic Control
+# Air Traffic Scheduling System
 
-Download, compile run!
+## Running
+
+Clone the repo, and run
+```
+make && ./bin/atss atss
+```
+If atss.db doesn't exist,
+```
+chmod +x data_ref/db_from_csv.py scripts/create_atss_db.sh
+./scripts/create_atss_db.sh
+./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
+```
 
 ## Project Directory Structure:
 
@@ -23,7 +33,7 @@ ATSS/
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
 
 ## TODO
-- [ ] Better makefile
+- [x] Better makefile
 - [x] Make db names as arguments instead of inputing inside the program
 - [ ] Setup proper formatting.
 
@@ -31,7 +41,7 @@ ATSS/
 
 To see the status of the flights table
 ```
-sqlite3 -table flights.db "select * from flights;"
+sqlite3 -table data/atss.db "select * from flights;"
 ```
 
 ## Algorithm for the alloter

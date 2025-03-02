@@ -13,7 +13,7 @@ international_airports = [
 airlines = ["Air India", "IndiGo", "Vistara", "SpiceJet", "Emirates", "Lufthansa", "British Airways"]
 aircraft_types = ["Boeing 737", "Airbus A320", "Boeing 777", "Airbus A380", "Embraer E190"]
 
-fields = ["flight_id", "airline", "origin", "destination", "departure_time", "arrival_time", "aircraft_type", "priority_level"]
+fields = ["flight_id", "airline", "origin", "destination", "departure_time", "arrival_time", "aircraft_type", "priority_level", "runway_time"]
 data = []
 
 current_airport = input("Enter the current airport IATA code (or type 'random' to choose one): ")
@@ -21,12 +21,12 @@ if current_airport.lower() == "random":
     current_airport = random.choice(indian_airports)
 print(f"Current airport: {current_airport}")
 
-start = input("Enter start time [in hh:mm 24hrs format] : ")
-end = input("Enter end time [in hh:mm 24hrs format] : ")
+start = input("Enter start time [in hhmm 24hrs format] : ")
+end = input("Enter end time [in hhmm 24hrs format] : ")
 n = int(input("Enter the number of flights within the time: "))
 
-start_time = datetime.strptime(start, "%H:%M")
-end_time = datetime.strptime(end, "%H:%M")
+start_time = datetime.strptime(start, "%H%M")
+end_time = datetime.strptime(end, "%H%M")
 time_now = start_time
 
 time_range = (end_time - start_time).total_seconds() // 60
@@ -53,10 +53,17 @@ for i in range(n):
     if random.random() < 0.05:  # 5% chance of emergency
         priority = 1
     
-    departure_time = time_now.strftime("%H:%M")
-    arrival_time = (time_now + timedelta(minutes=flight_duration)).strftime("%H:%M")
+    departure_time = time_now.strftime("%H%M")
+    arrival_time = (time_now + timedelta(minutes=flight_duration)).strftime("%H%M")
+
+    # The time it needs to be on the runway
+    runway_time = "";
+    if (origin == current_airport):
+        runway_time = departure_time
+    else:
+        runway_time = arrival_time
     
-    data.append([f"FL{i+1:03d}", airline, origin, destination, departure_time, arrival_time, aircraft, priority])
+    data.append([f"FL{i+1:03d}", airline, origin, destination, departure_time, arrival_time, aircraft, priority, runway_time])
     
     interval = random.randint(15, max_interval)
     time_now += timedelta(minutes=interval)
