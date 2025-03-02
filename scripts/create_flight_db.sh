@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS flights (
     departure_time TEXT,
     arrival_time TEXT,
     aircraft_type TEXT,
-    priority_level INTEGER
+    priority_level INTEGER,
+    runway_time TEXT
 );"
 
 sqlite3 "data/flights.db" "$SQL_QUERY"
