@@ -17,7 +17,7 @@ void delete_flight_schedules(sqlite3 *db, char *err_msg);
 int view_crew_info(sqlite3 *db, char *err_msg);
 int view_crew_info_cb(void *, int, char **, char **);
 
-int main() {
+int main(int argc, char const *argv[]) {
 
     sqlite3 *flight_db;
     sqlite3 *crew_db;
@@ -30,11 +30,13 @@ int main() {
     char crew_db_name[100];
     char crew_db_path[150];
 
-    printf("Enter the Flights database name: ");
-    scanf("%99s",flights_db_name);
-
-    printf("Enter the Crew database name: ");
-    scanf("%99s",crew_db_name);
+    // Argument handling for db
+    if (argc != 3) {
+        printf("Usage is\n`atss flights crew_small`\n");
+        return 0;
+    }
+    strcpy(flights_db_name, argv[1]);
+    strcpy(crew_db_name, argv[2]);
 
     snprintf(flights_db_path, sizeof(flights_db_path), "data/%s.db", flights_db_name);
     snprintf(crew_db_path, sizeof(crew_db_path), "data/%s.db", crew_db_name);
