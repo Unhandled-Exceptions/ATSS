@@ -3,7 +3,6 @@
 
 Download, compile run!
 
-
 ## Project Directory Structure:
 
 ~~~
@@ -20,3 +19,8 @@ ATSS/
 ~~~
 
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
+
+## TODO
+- [ ] Better makefile
+- [ ] Make db names as arguments instead of inputing inside the program
+- [ ] Setup proper formatting.
