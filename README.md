@@ -12,6 +12,8 @@ ATSS/
 │── lib/                 # 3rd Party Libraries
 │   │── sqlite3.c
 │   │── sqlite3.h
+│── data/                # .csv and db files
+│── scripts/             # scripts to generate db files
 │── include/             # Project specific header files
 │── bin/                 # Compiled binaries
 │── obj/                 # Compiled object files
@@ -21,8 +23,8 @@ ATSS/
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
 
 ## TODO
-- [x] Better makefile
-- [ ] Make db names as arguments instead of inputing inside the program
+- [ ] Better makefile
+- [x] Make db names as arguments instead of inputing inside the program
 - [ ] Setup proper formatting.
 
 ## Useful commands
