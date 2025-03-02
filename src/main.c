@@ -11,30 +11,49 @@ int view_flight_schedules_cb(void *, int, char **, char **);
 
 void add_flight_schedules(sqlite3 *db, char *err_msg);
 void update_flight_schedules();
+
 void delete_flight_schedules(sqlite3 *db, char *err_msg);
-void view_crew_info();
+
+int view_crew_info(sqlite3 *db, char *err_msg);
+int view_crew_info_cb(void *, int, char **, char **);
 
 int main() {
 
     sqlite3 *flight_db;
+    sqlite3 *crew_db;
 
     char *err_msg = 0;
 
     char flights_db_name[100];
     char flights_db_path[150];
 
+    char crew_db_name[100];
+    char crew_db_path[150];
+
     printf("Enter the Flights database name: ");
     scanf("%99s",flights_db_name);
 
+    printf("Enter the Crew database name: ");
+    scanf("%99s",crew_db_name);
+
     snprintf(flights_db_path, sizeof(flights_db_path), "data/%s.db", flights_db_name);
+    snprintf(crew_db_path, sizeof(crew_db_path), "data/%s.db", crew_db_name);
 
-    int rc = sqlite3_open(flights_db_path, &flight_db);
+    int rc1 = sqlite3_open(flights_db_path, &flight_db);
+    int rc2 = sqlite3_open(crew_db_path, &crew_db);
 
-    if (rc != SQLITE_OK) {
+    if (rc1 != SQLITE_OK) {
         
         fprintf(stderr, "Cannot open database: %s\n", 
                 sqlite3_errmsg(flight_db));
         sqlite3_close(flight_db);
+        return 1;
+    }
+    if (rc2 != SQLITE_OK) {
+        
+        fprintf(stderr, "Cannot open database: %s\n", 
+                sqlite3_errmsg(crew_db));
+        sqlite3_close(crew_db);
         
         return 1;
     }
@@ -64,7 +83,7 @@ int main() {
                 delete_flight_schedules(flight_db, err_msg);
                 break;
             case 5:
-                view_crew_info();
+                view_crew_info(crew_db, err_msg);
                 break;
             case 6:
                 printf("Bye !\n");
@@ -194,6 +213,39 @@ void delete_flight_schedules(sqlite3 *db, char *err_msg){
     sqlite3_free(query);
 } 
 
-void view_crew_info(){
-    printf("View Flight Crew Information : Not yet implemented !!!\n");
+int view_crew_info(sqlite3 *db, char *err_msg){
+    char *query = "SELECT * FROM crew";
+    
+    printf("--------------------------------------------------------------------------------------------\n");
+    printf("%-40s %-15s %-20s %-15s\n", "Name", "Designation", "Airline", "Hours Worked");
+    printf("--------------------------------------------------------------------------------------------\n");    
+    
+    int rc = sqlite3_exec(db, query, view_crew_info_cb, 0, &err_msg);
+    
+    if (rc != SQLITE_OK ) {
+        
+        fprintf(stderr, "Failed to select data\n");
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        
+        return 1;
+    }
+    printf("--------------------------------------------------------------------------------------------\n");
+    return 0;
+}
+
+int view_crew_info_cb(void *NotUsed, int argc, char **argv, 
+    char **azColName) {
+
+NotUsed = 0;
+
+printf("%-40s %-15s %-20s %-15s\n", 
+argv[0] ? argv[0] : "NULL", 
+argv[1] ? argv[1] : "NULL", 
+argv[2] ? argv[2] : "NULL", 
+argv[3] ? argv[3] : "NULL");
+
+return 0;
 }
