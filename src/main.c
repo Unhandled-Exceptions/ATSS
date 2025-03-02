@@ -164,9 +164,9 @@ void add_flight_schedules(sqlite3 *db, char *err_msg){
     scanf("%d",&priority_level);
     
     if (strcmp(origin, AIRPORT)) {
-        strcpy(departure_time, runway_time);
-    } else if (strcpy(destination, AIRPORT)) {
-        strcpy(arrival_time, runway_time);
+        strcpy(runway_time, departure_time);
+    } else if (strcmp(destination, AIRPORT)) {
+        strcpy(runway_time, arrival_time);
     }
 
     char *query = sqlite3_mprintf(query_template, flight_id, airline, origin, destination, departure_time, arrival_time, aircraft_type, priority_level, runway_time);
