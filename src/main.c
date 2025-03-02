@@ -3,7 +3,7 @@
 #include <sqlite3.h>
 #include <string.h>
 
-#define KCYN  "\x1B[36m"
+#define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
 
 int view_flight_schedules(sqlite3 *db, char *err_msg);
@@ -19,49 +19,33 @@ int view_crew_info_cb(void *, int, char **, char **);
 
 int main(int argc, char const *argv[]) {
 
-    sqlite3 *flight_db;
-    sqlite3 *crew_db;
+    sqlite3 *the_db;
 
     char *err_msg = 0;
 
-    char flights_db_name[100];
-    char flights_db_path[150];
-
-    char crew_db_name[100];
-    char crew_db_path[150];
+    char db_name[100];
+    char db_path[150];
 
     // Argument handling for db
-    if (argc != 3) {
-        printf("Usage is\n`atss flights crew_small`\n");
+    if (argc != 2) {
+        printf("Usage is\n`atss atss`\n");
         return 0;
     }
-    strcpy(flights_db_name, argv[1]);
-    strcpy(crew_db_name, argv[2]);
+    strcpy(db_name, argv[1]);
 
-    snprintf(flights_db_path, sizeof(flights_db_path), "data/%s.db", flights_db_name);
-    snprintf(crew_db_path, sizeof(crew_db_path), "data/%s.db", crew_db_name);
+    snprintf(db_path, sizeof(db_path), "data/%s.db", db_name);
 
-    int rc1 = sqlite3_open(flights_db_path, &flight_db);
-    int rc2 = sqlite3_open(crew_db_path, &crew_db);
+    int rc = sqlite3_open(db_path, &the_db);
 
-    if (rc1 != SQLITE_OK) {
-        
+    if (rc != SQLITE_OK) {
         fprintf(stderr, "Cannot open database: %s\n", 
-                sqlite3_errmsg(flight_db));
-        sqlite3_close(flight_db);
-        return 1;
-    }
-    if (rc2 != SQLITE_OK) {
-        
-        fprintf(stderr, "Cannot open database: %s\n", 
-                sqlite3_errmsg(crew_db));
-        sqlite3_close(crew_db);
-        
+                sqlite3_errmsg(the_db));
+        sqlite3_close(the_db);
         return 1;
     }
 
     // Display the title and copyright
-    printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",KCYN);
+    printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
     printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
     
     printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
@@ -73,23 +57,23 @@ int main(int argc, char const *argv[]) {
         
         switch(choice){
             case 1:
-                view_flight_schedules(flight_db, err_msg);
+                view_flight_schedules(the_db, err_msg);
                 break;
             case 2:
-                add_flight_schedules(flight_db, err_msg);
+                add_flight_schedules(the_db, err_msg);
                 break;
             case 3:
                 update_flight_schedules();
                 break;
             case 4:
-                delete_flight_schedules(flight_db, err_msg);
+                delete_flight_schedules(the_db, err_msg);
                 break;
             case 5:
-                view_crew_info(crew_db, err_msg);
+                view_crew_info(the_db, err_msg);
                 break;
             case 6:
                 printf("Bye !\n");
-                sqlite3_close(flight_db);
+                sqlite3_close(the_db);
                 exit(0);
             default:
                 printf("Invalid choice !\n");
