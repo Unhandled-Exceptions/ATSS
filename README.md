@@ -21,7 +21,7 @@ ATSS/
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
 
 ## TODO
-- [ ] Better makefile
+- [x] Better makefile
 - [ ] Make db names as arguments instead of inputing inside the program
 - [ ] Setup proper formatting.
 
@@ -33,7 +33,7 @@ sqlite3 -table flights.db "select * from flights;"
 ```
 
 ## Algorithm for the alloter
-
+```
 We have 3 tables in the db, `flights`, `crew`, `alloted`.
 Flights are sorted according to their `runway_time` and priority.
 Iterate through `flights` table:
@@ -50,3 +50,4 @@ Ask the user for clarifications for the `delay_pile`:
     - Else say that there is no option but to cancel the flight.
 Generate runway utilization and delay reports.
 Done.
+```
