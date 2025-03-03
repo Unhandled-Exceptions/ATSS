@@ -17,6 +17,8 @@ void delete_flight_schedules(sqlite3 *db, char *err_msg);
 int view_crew_info(sqlite3 *db, char *err_msg);
 int view_crew_info_cb(void *, int, char **, char **);
 
+int allot(sqlite3 *db, char *err_msg);
+
 int main(int argc, char const *argv[]) {
 
     sqlite3 *the_db;
@@ -89,7 +91,7 @@ int view_flight_schedules(sqlite3 *db, char *err_msg){
     char *query = "SELECT * FROM flights ORDER BY departure_time;";
     
     printf("-----------------------------------------------------------------------------\n");
-    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
+    printf("%-12s %-20s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
     printf("-----------------------------------------------------------------------------\n");
     
     int rc = sqlite3_exec(db, query, view_flight_schedules_cb, 0, &err_msg);
@@ -114,7 +116,7 @@ int view_flight_schedules_cb(void *NotUsed, int argc, char **argv,
     
     NotUsed = 0;
     
-    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", 
+    printf("%-12s %-20s %-8s %-12s %-15s %-15s\n", 
         argv[0] ? argv[0] : "NULL", 
         argv[1] ? argv[1] : "NULL", 
         argv[2] ? argv[2] : "NULL", 
