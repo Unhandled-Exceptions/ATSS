@@ -66,5 +66,4 @@ docs/_build/
 venv/
 
 # Main database files
-data/flights.db
-data/crew.db
+*.db
