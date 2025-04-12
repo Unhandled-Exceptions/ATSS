@@ -68,3 +68,4 @@ venv/
 # Main database files
 data/flights.db
 data/crew.db
+data/atss.db
