@@ -2,17 +2,17 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include "flights.h"
 
 #define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
 
-int view_flight_schedules(sqlite3 *db, char *err_msg);
-int view_flight_schedules_cb(void *, int, char **, char **);
+int view_flight_schedules(FL *flights);
 
-void add_flight_schedules(sqlite3 *db, char *err_msg);
-void update_flight_schedules();
+void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
+void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
-void delete_flight_schedules(sqlite3 *db, char *err_msg);
+void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
 int view_crew_info(sqlite3 *db, char *err_msg);
 int view_crew_info_cb(void *, int, char **, char **);
@@ -22,6 +22,9 @@ int main(int argc, char const *argv[]) {
     sqlite3 *the_db;
 
     char *err_msg = 0;
+
+    FL flights;
+    init_flight_list(&flights, INIT_FLIGHTS_SIZE);
 
     char db_name[100];
     char db_path[150];
@@ -44,6 +47,12 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
+    if (load_flights_data(&flights, the_db, err_msg) != 0) {
+        fprintf(stderr, "Failed to load data from database\n");
+        sqlite3_close(the_db);
+        return 1;
+    }
+
     // Display the title and copyright
     printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
     printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
@@ -57,23 +66,24 @@ int main(int argc, char const *argv[]) {
         
         switch(choice){
             case 1:
-                view_flight_schedules(the_db, err_msg);
+                view_flight_schedules(&flights);
                 break;
             case 2:
-                add_flight_schedules(the_db, err_msg);
+                add_flight_schedules(&flights, the_db, err_msg);
                 break;
             case 3:
-                update_flight_schedules();
+                update_flight_schedules(&flights, the_db, err_msg);
                 break;
             case 4:
-                delete_flight_schedules(the_db, err_msg);
+                delete_flight_schedules(&flights, the_db, err_msg);
                 break;
             case 5:
                 view_crew_info(the_db, err_msg);
                 break;
             case 6:
-                printf("Bye !\n");
+                free_flight_list(&flights);
                 sqlite3_close(the_db);
+                printf("Bye !\n");
                 exit(0);
             default:
                 printf("Invalid choice !\n");
@@ -83,120 +93,81 @@ int main(int argc, char const *argv[]) {
 }
 
 
-// View flight schedule
-int view_flight_schedules(sqlite3 *db, char *err_msg){
+int view_flight_schedules(FL *flights){
     
-    char *query = "SELECT * FROM flights ORDER BY departure_time;";
-    
-    printf("-----------------------------------------------------------------------------\n");
-    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
-    printf("-----------------------------------------------------------------------------\n");
-    
-    int rc = sqlite3_exec(db, query, view_flight_schedules_cb, 0, &err_msg);
-    
-    if (rc != SQLITE_OK ) {
-        
-        fprintf(stderr, "Failed to select data\n");
-        fprintf(stderr, "SQL error: %s\n", err_msg);
-
-        sqlite3_free(err_msg);
-        sqlite3_close(db);
-        
-        return 1;
+    printf("------------------------------------------------------------------------------------------\n");
+    printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
+    printf("------------------------------------------------------------------------------------------\n");
+    for (int i = 0; i < flights->size; i++) {
+        printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
+            flights->flight[0].flight_id ? flights->flight[i].flight_id : "NULL",
+            flights->flight[0].airline ? flights->flight[i].airline : "NULL",
+            flights->flight[0].origin ? flights->flight[i].origin : "NULL",
+            flights->flight[0].destination ? flights->flight[i].destination : "NULL",
+            flights->flight[0].departure_time ? flights->flight[i].departure_time : "NULL",
+            flights->flight[0].arrival_time ? flights->flight[i].arrival_time : "NULL");   
     }
-    printf("-----------------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------------------------------\n");
     return 0;
 
 }
 
-int view_flight_schedules_cb(void *NotUsed, int argc, char **argv, 
-                    char **azColName) {
-    
-    NotUsed = 0;
-    
-    printf("%-12s %-12s %-8s %-12s %-15s %-15s\n", 
-        argv[0] ? argv[0] : "NULL", 
-        argv[1] ? argv[1] : "NULL", 
-        argv[2] ? argv[2] : "NULL", 
-        argv[3] ? argv[3] : "NULL", 
-        argv[4] ? argv[4] : "NULL", 
-        argv[5] ? argv[5] : "NULL");
+void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        FD flight;
+        printf("Enter Flight ID : ");
+        scanf("%9s", flight.flight_id);
+        printf("Enter Airline (max 24 chars) : ");
+        scanf("%24s", flight.airline);
+        printf("Enter Origin (IATA Code) : ");
+        scanf("%3s", flight.origin);
+        printf("Enter Destination (IATA Code) : ");
+        scanf("%3s", flight.destination);
+        printf("Enter Departure Time (HHMM) : ");
+        scanf("%5s", flight.departure_time);
+        printf("Enter Arrival Time (HHMM) : ");
+        scanf("%5s", flight.arrival_time);
+        printf("Enter Aircraft Type (max 30 chars) : ");
+        scanf("%30s", flight.aircraft_type);
+        printf("Enter Priority Level : ");
+        scanf("%d", &flight.priority_level);
 
-    return 0;
+        if (insert_flight_data(&flight, flights, db, err_msg) != 0) {
+            fprintf(stderr, "Failed to insert data into database\n");
+        }
 }
 
-void add_flight_schedules(sqlite3 *db, char *err_msg){
-    char *query_template = "INSERT INTO flights VALUES (%Q, %Q, %Q, %Q, %Q, %Q, %Q, %d, %Q)";
+void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        FD flight;
+        printf("Enter Flight ID : ");
+        scanf("%9s", flight.flight_id);
+        printf("Enter new Airline (max 24 chars) : ");
+        scanf("%24s", flight.airline);
+        printf("Enter new Origin (IATA Code) : ");
+        scanf("%3s", flight.origin);
+        printf("Enter new Destination (IATA Code) : ");
+        scanf("%3s", flight.destination);
+        printf("Enter new Departure Time (HHMM) : ");
+        scanf("%5s", flight.departure_time);
+        printf("Enter new Arrival Time (HHMM) : ");
+        scanf("%5s", flight.arrival_time);
+        printf("Enter new Aircraft Type (max 30 chars) : ");
+        scanf("%30s", flight.aircraft_type);
+        printf("Enter new Priority Level : ");
+        scanf("%d", &flight.priority_level);
 
-    char flight_id[10], airline[25], origin[4], destination[4], departure_time[6], arrival_time[6], aircraft_type[31], runway_time[6];
-    int priority_level;
-    printf("Enter Flight ID : ");
-    scanf("%9s",flight_id);
-    printf("Enter Airline (max 24 chars) : ");
-    scanf("%24s",airline);
-    printf("Enter Origin (IATA Code) : ");
-    scanf("%3s",origin);
-    printf("Enter Destination (IATA Code) : ");
-    scanf("%3s",destination);
-    printf("Enter Departure Time (HH:MM) : ");
-    scanf("%5s",departure_time);
-    printf("Enter Arrival Time (HH:MM) : ");
-    scanf("%5s",arrival_time);
-    printf("Enter Aircraft Type (max 30 chars) : ");
-    scanf("%30s",aircraft_type);
-    printf("Enter Priority Level : ");
-    scanf("%d",&priority_level);
-    
-    if (strcmp(origin, AIRPORT)) {
-        strcpy(runway_time, departure_time);
-    } else if (strcmp(destination, AIRPORT)) {
-        strcpy(runway_time, arrival_time);
-    }
-
-    char *query = sqlite3_mprintf(query_template, flight_id, airline, origin, destination, departure_time, arrival_time, aircraft_type, priority_level, runway_time);
-    if (query == NULL) {
-        printf("Memory allocation for the query failed :(\n");
-    }
-
-    int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
-
-    if (rc != SQLITE_OK) {
-        printf("SQL error: %s\n", err_msg);
-        sqlite3_free(err_msg);
-    } else {
-        printf("Data inserted successfully !!!\n");
-    }
-
-    sqlite3_free(query);
-
+        if (update_flight_data(&flight, flights, db, err_msg) != 0) {
+            fprintf(stderr, "Failed to update data in database\n");
+        }
 }
 
-void update_flight_schedules(){
-    printf("Update Flight Schedule : Not yet implemented !!!\n");
-}
+void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        char flight_id[10];
+        printf("Enter Flight ID : ");
+        scanf("%9s", flight_id);
 
-void delete_flight_schedules(sqlite3 *db, char *err_msg){
-    char *query_template = "DELETE FROM flights WHERE flight_id = %Q";
-
-    char flight_id[10];
-    printf("Enter Flight ID : ");
-    scanf("%9s",flight_id);
-    
-    char *query = sqlite3_mprintf(query_template, flight_id);
-    if (query == NULL) {
-        printf("Memory allocation for the query failed :(\n");
-    }
-
-    int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
-    
-    if (rc != SQLITE_OK) {
-        printf("SQL error: %s\n", err_msg);
-        sqlite3_free(err_msg);
-    } else {
-        printf("Data entry removed successfully !\n");
-    }
-
-    sqlite3_free(query);
+        if (delete_flight_data(flight_id, flights, db, err_msg) != 0) {
+            fprintf(stderr, "Failed to delete data from database\n");
+        }
 } 
 
 int view_crew_info(sqlite3 *db, char *err_msg){
