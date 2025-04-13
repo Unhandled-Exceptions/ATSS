@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
         "4.Delete Flight Schedules\n"
         "5.View Flight Crew Information\n"
         "6.View Allots\n"
-        "8.Allot flights\n"
+        "7.Allot flights\n"
         "8.Exit\n"
     );
     
@@ -96,6 +96,9 @@ int main(int argc, char const *argv[]) {
                 view_allots(the_db, err_msg);
                 break;
             case 7:
+                get_last_alloted_flight(&flights, the_db, err_msg);
+                break;
+            case 8:
                 free_flight_list(&flights);
                 sqlite3_close(the_db);
                 printf("Bye !\n");
