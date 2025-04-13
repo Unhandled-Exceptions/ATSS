@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 #include <string.h>
 #include "flights.h"
+#include "alloter.h"
 
 #define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
@@ -59,7 +60,16 @@ int main(int argc, char const *argv[]) {
     printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
     printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
     
-    printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
+    printf("\n\nMenu:\n"
+        "1.View Flight Schedules\n"
+        "2.Add Flight Schedules\n"
+        "3.Update Flight Schedules\n"
+        "4.Delete Flight Schedules\n"
+        "5.View Flight Crew Information\n"
+        "6.View Allots\n"
+        "8.Allot flights\n"
+        "8.Exit\n"
+    );
     
     int choice;
     while (1) {
@@ -83,6 +93,9 @@ int main(int argc, char const *argv[]) {
                 view_crew_info(the_db, err_msg);
                 break;
             case 6:
+                view_allots(the_db, err_msg);
+                break;
+            case 7:
                 free_flight_list(&flights);
                 sqlite3_close(the_db);
                 printf("Bye !\n");
@@ -208,3 +221,4 @@ argv[3] ? argv[3] : "NULL");
 
 return 0;
 }
+

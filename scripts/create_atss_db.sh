@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS flights (
 CREATE TABLE IF NOT EXISTS alloted (
     allot_id INTEGER PRIMARY KEY,
     flight_id TEXT,
-    allotted_time INTEGER,
+    allotted_time TEXT,
     FOREIGN KEY (flight_id) REFERENCES flights (flight_id)
 );
 CREATE TABLE IF NOT EXISTS crew_allot (
