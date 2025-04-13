@@ -11,11 +11,11 @@ CREATE TABLE IF NOT EXISTS flights (
     airline TEXT,
     origin TEXT,
     destination TEXT,
-    departure_time INTEGER,
-    arrival_time INTEGER,
+    departure_time TEXT,
+    arrival_time TEXT,
     aircraft_type TEXT,
     priority_level INTEGER,
-    runway_time INTEGER
+    runway_time TEXT
 );
 CREATE TABLE IF NOT EXISTS alloted (
     allot_id INTEGER PRIMARY KEY,
