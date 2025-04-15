@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 #include <string.h>
 #include "flights.h"
+#include "crew.h"
 
 #define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
@@ -14,8 +15,7 @@ void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
 void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
-int view_crew_info(sqlite3 *db, char *err_msg);
-int view_crew_info_cb(void *, int, char **, char **);
+int view_crew_info(CL *crew_list, char *err_msg);
 
 int main(int argc, char const *argv[]) {
 
@@ -25,6 +25,9 @@ int main(int argc, char const *argv[]) {
 
     FL flights;
     init_flight_list(&flights, INIT_FLIGHTS_SIZE);
+
+    CL crew_list;
+    init_crew_list(&crew_list, INIT_CREW_SIZE);
 
     char db_name[100];
     char db_path[150];
@@ -48,7 +51,13 @@ int main(int argc, char const *argv[]) {
     }
 
     if (load_flights_data(&flights, the_db, err_msg) != 0) {
-        fprintf(stderr, "Failed to load data from database\n");
+        fprintf(stderr, "Failed to load flights data from database\n");
+        sqlite3_close(the_db);
+        return 1;
+    }
+
+    if (load_crew_data(&crew_list, the_db, err_msg) != 0) {
+        fprintf(stderr, "Failed to load crew data from database\n");
         sqlite3_close(the_db);
         return 1;
     }
@@ -78,7 +87,7 @@ int main(int argc, char const *argv[]) {
                 delete_flight_schedules(&flights, the_db, err_msg);
                 break;
             case 5:
-                view_crew_info(the_db, err_msg);
+                view_crew_info(&crew_list, err_msg);
                 break;
             case 6:
                 free_flight_list(&flights);
@@ -170,39 +179,20 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         }
 } 
 
-int view_crew_info(sqlite3 *db, char *err_msg){
-    char *query = "SELECT * FROM crew";
+int view_crew_info(CL *crew_list, char *err_msg){
+    char hours_worked[5];
+    sprintf(hours_worked, "%d", crew_list->crew[0].hours_worked);
     
     printf("--------------------------------------------------------------------------------------------\n");
     printf("%-40s %-15s %-20s %-15s\n", "Name", "Designation", "Airline", "Hours Worked");
     printf("--------------------------------------------------------------------------------------------\n");    
-    
-    int rc = sqlite3_exec(db, query, view_crew_info_cb, 0, &err_msg);
-    
-    if (rc != SQLITE_OK ) {
-        
-        fprintf(stderr, "Failed to select data\n");
-        fprintf(stderr, "SQL error: %s\n", err_msg);
-
-        sqlite3_free(err_msg);
-        sqlite3_close(db);
-        
-        return 1;
+    for (int i = 0; i < crew_list->size; i++) {
+        printf("%-40s %-15s %-20s %-15s\n",
+            crew_list->crew[0].name ? crew_list->crew[i].name : "NULL",
+            crew_list->crew[0].designation ? crew_list->crew[i].designation : "NULL",
+            crew_list->crew[0].airline ? crew_list->crew[i].airline : "NULL",
+            hours_worked ? hours_worked : "0");    
     }
     printf("--------------------------------------------------------------------------------------------\n");
     return 0;
-}
-
-int view_crew_info_cb(void *NotUsed, int argc, char **argv, 
-    char **azColName) {
-
-NotUsed = 0;
-
-printf("%-40s %-15s %-20s %-15s\n", 
-argv[0] ? argv[0] : "NULL", 
-argv[1] ? argv[1] : "NULL", 
-argv[2] ? argv[2] : "NULL", 
-argv[3] ? argv[3] : "NULL");
-
-return 0;
 }
