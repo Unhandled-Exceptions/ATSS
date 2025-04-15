@@ -19,7 +19,7 @@ typedef struct flight_data{
 } FD;
 
 typedef struct flights_list{
-    struct flight_data *flight;
+    FD *flight;
     size_t size;
     size_t allocated;
 } FL;
