@@ -1,7 +1,8 @@
 #! /bin/bash
 SQL_QUERY="
 CREATE TABLE IF NOT EXISTS crew (
-    name TEXT PRIMARY KEY,
+    crew_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
     designation TEXT,
     airline TEXT,
     hours_worked INTEGER
