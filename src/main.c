@@ -188,9 +188,9 @@ int view_crew_info(CL *crew_list, char *err_msg){
     printf("--------------------------------------------------------------------------------------------\n");    
     for (int i = 0; i < crew_list->size; i++) {
         printf("%-40s %-15s %-20s %-15s\n",
-            crew_list->crew[0].name ? crew_list->crew[i].name : "NULL",
-            crew_list->crew[0].designation ? crew_list->crew[i].designation : "NULL",
-            crew_list->crew[0].airline ? crew_list->crew[i].airline : "NULL",
+            crew_list->crew[i].name ? crew_list->crew[i].name : "NULL",
+            crew_list->crew[i].designation ? crew_list->crew[i].designation : "NULL",
+            crew_list->crew[i].airline ? crew_list->crew[i].airline : "NULL",
             hours_worked ? hours_worked : "0");    
     }
     printf("--------------------------------------------------------------------------------------------\n");
