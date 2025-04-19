@@ -101,24 +101,27 @@ int main(int argc, char const *argv[]) {
     return 0;  
 }
 
-
 int view_flight_schedules(FL *flights){
-    
     printf("------------------------------------------------------------------------------------------\n");
-    printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
+    printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
+           "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
     printf("------------------------------------------------------------------------------------------\n");
+
     for (int i = 0; i < flights->size; i++) {
-        printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
-            flights->flight[0].flight_id ? flights->flight[i].flight_id : "NULL",
-            flights->flight[0].airline ? flights->flight[i].airline : "NULL",
-            flights->flight[0].origin ? flights->flight[i].origin : "NULL",
-            flights->flight[0].destination ? flights->flight[i].destination : "NULL",
-            flights->flight[0].departure_time ? flights->flight[i].departure_time : "NULL",
-            flights->flight[0].arrival_time ? flights->flight[i].arrival_time : "NULL");   
+        char *dep = flights->flight[i].departure_time;
+        char *arr = flights->flight[i].arrival_time;
+
+        printf("%-12s %-25s %-8s %-12s %.2s:%.2s           %.2s:%.2s\n", 
+            flights->flight[i].flight_id ? flights->flight[i].flight_id : "NULL",
+            flights->flight[i].airline ? flights->flight[i].airline : "NULL",
+            flights->flight[i].origin ? flights->flight[i].origin : "NULL",
+            flights->flight[i].destination ? flights->flight[i].destination : "NULL",
+            dep, dep + 2,
+            arr, arr + 2);
     }
+
     printf("------------------------------------------------------------------------------------------\n");
     return 0;
-
 }
 
 void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
@@ -179,20 +182,20 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         }
 } 
 
-int view_crew_info(CL *crew_list, char *err_msg){
-    char hours_worked[5];
-    sprintf(hours_worked, "%d", crew_list->crew[0].hours_worked);
-    
-    printf("--------------------------------------------------------------------------------------------\n");
-    printf("%-40s %-15s %-20s %-15s\n", "Name", "Designation", "Airline", "Hours Worked");
-    printf("--------------------------------------------------------------------------------------------\n");    
+int view_crew_info(CL *crew_list, char *err_msg) {
+    printf("---------------------------------------------------------------------------------------------------------------\n");
+    printf("%-8s %-40s %-15s %-20s %-15s\n", "Crew ID", "Name", "Designation", "Airline", "Hours Worked");
+    printf("---------------------------------------------------------------------------------------------------------------\n");
+
     for (int i = 0; i < crew_list->size; i++) {
-        printf("%-40s %-15s %-20s %-15s\n",
+        printf("%-8d %-40s %-15s %-20s %-15d\n",
+            crew_list->crew[i].crew_id,
             crew_list->crew[i].name ? crew_list->crew[i].name : "NULL",
             crew_list->crew[i].designation ? crew_list->crew[i].designation : "NULL",
             crew_list->crew[i].airline ? crew_list->crew[i].airline : "NULL",
-            hours_worked ? hours_worked : "0");    
+            crew_list->crew[i].hours_worked);
     }
-    printf("--------------------------------------------------------------------------------------------\n");
+
+    printf("---------------------------------------------------------------------------------------------------------------\n");
     return 0;
 }
