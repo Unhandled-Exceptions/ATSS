@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS flights (
     runway_time TEXT
 );
 CREATE TABLE IF NOT EXISTS alloted (
-    allot_id INTEGER PRIMARY KEY,
+    allot_id INTEGER PRIMARY KEY AUTOINCREMENT,
     flight_id TEXT,
     allotted_time TEXT,
     FOREIGN KEY (flight_id) REFERENCES flights (flight_id)

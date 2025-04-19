@@ -55,8 +55,11 @@ Iterate through `flights` table:
         - otherwise put this current clight into the `delay_pile`
     Now if there is a valid allot spot:
         - loop through sorted `crew` table and assign to the flight
+
 Allotment finished.
+
 Ask the user for clarifications for the `delay_pile`:
+
     - Loop throught the `alloted` table again for any gaps after the "given" flight time:
         if such a gap exists, then ask user if they want to delay to that spot
     - Else say that there is no option but to cancel the flight.

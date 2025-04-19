@@ -96,7 +96,7 @@ int main(int argc, char const *argv[]) {
                 view_allots(the_db, err_msg);
                 break;
             case 7:
-                get_last_alloted_flight(&flights, the_db, err_msg);
+                allotment(&flights, the_db, err_msg);
                 break;
             case 8:
                 free_flight_list(&flights);
