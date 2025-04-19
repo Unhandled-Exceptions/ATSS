@@ -60,8 +60,6 @@ int main(int argc, char const *argv[]) {
         sqlite3_close(the_db);
         return 1;
     }
-
-    // Display the title and copyright
     
     int choice;
     while (1) {
