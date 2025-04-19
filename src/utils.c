@@ -84,5 +84,4 @@ void pauseScreen() {
     printf("\nPress Enter to continue...");
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF);
-    getchar();
 }
