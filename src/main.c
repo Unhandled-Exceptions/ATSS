@@ -17,6 +17,7 @@ void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
 int view_crew_info(CL *crew_list, char *err_msg);
+void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg);
 
 int main(int argc, char const *argv[]) {
 
@@ -65,7 +66,7 @@ int main(int argc, char const *argv[]) {
     int choice;
     while (1) {
         display_header();
-        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
+        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Declare Flight Emergency\n7.Exit\n");
         get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
@@ -84,6 +85,9 @@ int main(int argc, char const *argv[]) {
                 view_crew_info(&crew_list, err_msg);
                 break;
             case 6:
+                handle_realtime_event(&flights, the_db, err_msg);
+                break;
+            case 7:
                 free_flight_list(&flights);
                 sqlite3_close(the_db);
                 printf("Bye !\n");
@@ -100,25 +104,42 @@ int view_flight_schedules(FL *flights){
     printf("=========================================\n");
     printf("          Flight Schedule       \n");
     printf("=========================================\n\n");
-    printf("------------------------------------------------------------------------------------------\n");
-    printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
-           "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
-    printf("------------------------------------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------------------------------------------\n");
+    printf("%-12s %-25s %-10s %-8s %-12s %-15s %-15s\n","Flight Id", "Airline", "Priority", "Origin", "Destination", "Departure Time", "Arrival Time");
+    printf("-----------------------------------------------------------------------------------------------------\n");
 
     for (int i = 0; i < flights->size; i++) {
         char *dep = flights->flight[i].departure_time;
         char *arr = flights->flight[i].arrival_time;
 
-        printf("%-12s %-25s %-8s %-12s %.2s:%.2s           %.2s:%.2s\n", 
+        char priority_str[11];
+
+        switch (flights->flight[i].priority_level) {
+            case 1:
+                strcpy(priority_str, "Emergency");
+                break;
+            case 2:
+                strcpy(priority_str, "Intl");
+                break;
+            case 3:
+                strcpy(priority_str, "Domestic");
+                break;
+            default:
+                strcpy(priority_str, "Unknown");
+                break;
+        }
+
+        printf("%-12s %-25s %-10s %-8s %-12s %.2s:%.2s           %.2s:%.2s\n",
             flights->flight[i].flight_id ? flights->flight[i].flight_id : "NULL",
             flights->flight[i].airline ? flights->flight[i].airline : "NULL",
+            priority_str,
             flights->flight[i].origin ? flights->flight[i].origin : "NULL",
             flights->flight[i].destination ? flights->flight[i].destination : "NULL",
             dep, dep + 2,
             arr, arr + 2);
     }
 
-    printf("------------------------------------------------------------------------------------------\n\n");
+    printf("-----------------------------------------------------------------------------------------------------\n\n");
     pauseScreen();
     return 0;
 }
@@ -314,4 +335,72 @@ int view_crew_info(CL *crew_list, char *err_msg) {
     printf("---------------------------------------------------------------------------------------------------------------\n");
     pauseScreen();
     return 0;
+}
+
+void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
+    clear_screen();
+    printf("=========================================\n");
+    printf("       Declare Flight Emergency     \n");
+    printf("=========================================\n\n");
+
+    char flight_id_to_update[10];
+    int event_choice = -1;
+    char confirmation[10];
+
+    get_string_input("Enter Flight ID experiencing an event: ", flight_id_to_update, sizeof(flight_id_to_update));
+
+    FD *flight_to_update = find_flight_by_id(flight_id_to_update, flights);
+
+    if (flight_to_update == NULL) {
+        printf("\nError: Flight ID '%s' not found.\n", flight_id_to_update);
+        pauseScreen();
+        return;
+    }
+
+    printf("\n--- Flight Details Found ---\n");
+    printf("Flight ID:       %s\n", flight_to_update->flight_id);
+    printf("Airline:         %s\n", flight_to_update->airline);
+    printf("Origin:          %s\n", flight_to_update->origin);
+    printf("Destination:     %s\n", flight_to_update->destination);
+    printf("Current Priority:%d (1=Emerg, 2=Intl, 3=Dom)\n", flight_to_update->priority_level);
+    printf("-----------------------------\n\n");
+
+    printf("Select the type of event:\n");
+    printf("1. Weather Issue\n");
+    printf("2. Technical Issue\n");
+    printf("3. Medical Emergency\n");
+    printf("4. Security Concern\n");
+    printf("5. Other Emergency\n");
+
+    while (1) {
+        get_int_input("\nEnter event type number: ", &event_choice);
+        if (event_choice >= 1 && event_choice <= 5) {
+            break;
+        } else {
+            printf("Invalid choice. Please enter a number between 1 and 5.\n");
+        }
+    }
+    printf("\n");
+    get_string_input("Declare this flight as EMERGENCY (Priority 1)? (y/n): ", confirmation, sizeof(confirmation));
+
+    if (strlen(confirmation) > 0 && toupper(confirmation[0]) == 'Y') {
+        if (flight_to_update->priority_level == 1) {
+            printf("\nFlight '%s' is already at Emergency Priority (1).\n", flight_id_to_update);
+        } else {
+            printf("\nUpdating flight '%s' to Emergency Priority (1)...\n", flight_id_to_update);
+
+            FD updated_flight = *flight_to_update;
+            updated_flight.priority_level = 1;
+
+            if (update_flight_data(&updated_flight, flights, db, err_msg) != 0) {
+                fprintf(stderr, "Failed to update flight priority in database.\n");
+            } else {
+                printf("Flight '%s' priority updated successfully.\n", flight_id_to_update);
+            }
+        }
+    } else {
+        printf("\nPriority update cancelled.\n");
+    }
+
+    pauseScreen();
 }
