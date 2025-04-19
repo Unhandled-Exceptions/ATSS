@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <ctype.h>
 #include "flights.h"
 #include "crew.h"
 #include "utils.h"
@@ -247,19 +248,49 @@ void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg) {
     pauseScreen();
 }
 
-void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
-        clear_screen();
-        printf("=========================================\n");
-        printf("         Delete Flight Schedule       \n");
-        printf("=========================================\n\n");
-        char flight_id[10];
-        get_string_input("Enter Flight ID : ", flight_id, 9);
+void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg) {
+    clear_screen();
+    printf("=========================================\n");
+    printf("         Delete Flight Schedule       \n");
+    printf("=========================================\n\n");
 
-        if (delete_flight_data(flight_id, flights, db, err_msg) != 0) {
-            fprintf(stderr, "Failed to delete data from database\n");
-        }
+    char flight_id_to_delete[10];
+    char confirmation[10];
+
+    get_string_input("Enter Flight ID to delete: ", flight_id_to_delete, sizeof(flight_id_to_delete));
+
+    FD *flight_to_delete = find_flight_by_id(flight_id_to_delete, flights);
+
+    if (flight_to_delete == NULL) {
+        printf("\nError: Flight ID '%s' not found.\n", flight_id_to_delete);
         pauseScreen();
-} 
+        return;
+    }
+
+    printf("\n--- Flight Details Found ---\n");
+    printf("Flight ID:       %s\n", flight_to_delete->flight_id);
+    printf("Airline:         %s\n", flight_to_delete->airline);
+    printf("Origin:          %s\n", flight_to_delete->origin);
+    printf("Destination:     %s\n", flight_to_delete->destination);
+    printf("Departure Time:  %.2s:%.2s\n", flight_to_delete->departure_time, flight_to_delete->departure_time + 2);
+    printf("Arrival Time:    %.2s:%.2s\n", flight_to_delete->arrival_time, flight_to_delete->arrival_time + 2);
+    printf("Aircraft Type:   %s\n", flight_to_delete->aircraft_type);
+    printf("Priority Level:  %d\n", flight_to_delete->priority_level);
+    printf("-----------------------------\n\n");
+
+    get_string_input("Are you sure you want to delete this flight? (y/n): ", confirmation, sizeof(confirmation));
+
+    if (strlen(confirmation) > 0 && toupper(confirmation[0]) == 'Y') {
+        printf("\nDeleting flight '%s'...\n", flight_id_to_delete);
+        if (delete_flight_data(flight_id_to_delete, flights, db, err_msg) != 0) {
+            fprintf(stderr, "Failed to delete data from database.\n");
+        }
+    } else {
+        printf("\nDeletion cancelled.\n");
+    }
+
+    pauseScreen();
+}
 
 int view_crew_info(CL *crew_list, char *err_msg) {
     clear_screen();
