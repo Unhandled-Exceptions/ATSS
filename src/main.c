@@ -65,10 +65,7 @@ int main(int argc, char const *argv[]) {
     while (1) {
         display_header();
         printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
-        printf("\n> ");
-        
-        scanf("%d",&choice);
-        
+        get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
                 view_flight_schedules(&flights);
@@ -131,22 +128,14 @@ void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         printf("          Add Flight Schedule       \n");
         printf("=========================================\n\n");
         FD flight;
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight.flight_id);
-        printf("Enter Airline (max 24 chars) : ");
-        scanf("%24s", flight.airline);
-        printf("Enter Origin (IATA Code) : ");
-        scanf("%3s", flight.origin);
-        printf("Enter Destination (IATA Code) : ");
-        scanf("%3s", flight.destination);
-        printf("Enter Departure Time (HHMM) : ");
-        scanf("%5s", flight.departure_time);
-        printf("Enter Arrival Time (HHMM) : ");
-        scanf("%5s", flight.arrival_time);
-        printf("Enter Aircraft Type (max 30 chars) : ");
-        scanf("%30s", flight.aircraft_type);
-        printf("Enter Priority Level : ");
-        scanf("%d", &flight.priority_level);
+        get_string_input("Enter Flight ID : ", flight.flight_id, 9);
+        get_string_input("Enter Airline (max 24 chars) : ", flight.airline, 24);
+        get_string_input("Enter Origin (IATA Code) : ", flight.origin,4);
+        get_string_input("Enter Destination (IATA Code) : ", flight.destination,4);
+        get_string_input("Enter Departure Time (HHMM) : ", flight.departure_time, 5);
+        get_string_input("Enter Arrival Time (HHMM) : ", flight.arrival_time, 5);
+        get_string_input("Enter Aircraft Type (max 30 chars) : ", flight.aircraft_type, 30);
+        get_int_input("Enter new Priority Level (1 - Emergency, 2 - International, 3 - Domestic) : ", &flight.priority_level);
 
         if (insert_flight_data(&flight, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to insert data into database\n");
@@ -161,22 +150,14 @@ void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         printf("         Update Flight Schedule       \n");
         printf("=========================================\n\n");
         FD flight;
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight.flight_id);
-        printf("Enter new Airline (max 24 chars) : ");
-        scanf("%24s", flight.airline);
-        printf("Enter new Origin (IATA Code) : ");
-        scanf("%3s", flight.origin);
-        printf("Enter new Destination (IATA Code) : ");
-        scanf("%3s", flight.destination);
-        printf("Enter new Departure Time (HHMM) : ");
-        scanf("%5s", flight.departure_time);
-        printf("Enter new Arrival Time (HHMM) : ");
-        scanf("%5s", flight.arrival_time);
-        printf("Enter new Aircraft Type (max 30 chars) : ");
-        scanf("%30s", flight.aircraft_type);
-        printf("Enter new Priority Level : ");
-        scanf("%d", &flight.priority_level);
+        get_string_input("Enter Flight ID : ", flight.flight_id, 10);
+        get_string_input("Enter new Airline (max 24 chars) : ", flight.airline, 24);
+        get_string_input("Enter new Origin (IATA Code) : ", flight.origin, 4);
+        get_string_input("Enter new Destination (IATA Code) : ", flight.destination, 4);
+        get_string_input("Enter new Departure Time (HHMM) : ", flight.departure_time, 5);
+        get_string_input("Enter new Arrival Time (HHMM) : ", flight.arrival_time, 5);
+        get_string_input("Enter new Aircraft Type (max 30 chars) : ", flight.aircraft_type, 30);
+        get_int_input("Enter new Priority Level (1 - Emergency, 2 - International, 3 - Domestic) : ", &flight.priority_level);
 
         if (update_flight_data(&flight, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to update data in database\n");
@@ -190,8 +171,7 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         printf("         Delete Flight Schedule       \n");
         printf("=========================================\n\n");
         char flight_id[10];
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight_id);
+        get_string_input("Enter Flight ID : ", flight_id, 9);
 
         if (delete_flight_data(flight_id, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to delete data from database\n");
