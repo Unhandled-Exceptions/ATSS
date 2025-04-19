@@ -9,5 +9,6 @@ int get_string_input(const char *prompt, char *buffer, size_t buffer_size);
 int get_int_input(const char *prompt, int *value);
 void clear_stdin_buffer();
 void display_header();
+void pauseScreen();
 
 #endif

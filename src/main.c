@@ -62,13 +62,13 @@ int main(int argc, char const *argv[]) {
     }
 
     // Display the title and copyright
-    display_header();
-    printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
     
     int choice;
     while (1) {
-        
+        display_header();
+        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
         printf("\n> ");
+        
         scanf("%d",&choice);
         
         switch(choice){
@@ -100,6 +100,10 @@ int main(int argc, char const *argv[]) {
 }
 
 int view_flight_schedules(FL *flights){
+    clear_screen();
+    printf("=========================================\n");
+    printf("          Flight Schedule       \n");
+    printf("=========================================\n\n");
     printf("------------------------------------------------------------------------------------------\n");
     printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
            "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
@@ -118,11 +122,16 @@ int view_flight_schedules(FL *flights){
             arr, arr + 2);
     }
 
-    printf("------------------------------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------------------------------\n\n");
+    pauseScreen();
     return 0;
 }
 
 void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        clear_screen();
+        printf("=========================================\n");
+        printf("          Add Flight Schedule       \n");
+        printf("=========================================\n\n");
         FD flight;
         printf("Enter Flight ID : ");
         scanf("%9s", flight.flight_id);
@@ -144,9 +153,15 @@ void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         if (insert_flight_data(&flight, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to insert data into database\n");
         }
+
+        pauseScreen();
 }
 
 void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        clear_screen();
+        printf("=========================================\n");
+        printf("         Update Flight Schedule       \n");
+        printf("=========================================\n\n");
         FD flight;
         printf("Enter Flight ID : ");
         scanf("%9s", flight.flight_id);
@@ -168,9 +183,14 @@ void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         if (update_flight_data(&flight, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to update data in database\n");
         }
+        pauseScreen();
 }
 
 void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        clear_screen();
+        printf("=========================================\n");
+        printf("         Delete Flight Schedule       \n");
+        printf("=========================================\n\n");
         char flight_id[10];
         printf("Enter Flight ID : ");
         scanf("%9s", flight_id);
@@ -178,9 +198,15 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
         if (delete_flight_data(flight_id, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to delete data from database\n");
         }
+        pauseScreen();
 } 
 
 int view_crew_info(CL *crew_list, char *err_msg) {
+    clear_screen();
+    printf("==================================\n");
+    printf("         Crew Information       \n");
+    printf("==================================\n\n");
+
     printf("---------------------------------------------------------------------------------------------------------------\n");
     printf("%-8s %-40s %-15s %-20s %-15s\n", "Crew ID", "Name", "Designation", "Airline", "Hours Worked");
     printf("---------------------------------------------------------------------------------------------------------------\n");
@@ -195,5 +221,6 @@ int view_crew_info(CL *crew_list, char *err_msg) {
     }
 
     printf("---------------------------------------------------------------------------------------------------------------\n");
+    pauseScreen();
     return 0;
 }

@@ -79,3 +79,10 @@ void display_header(){
     printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
     printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
 }
+
+void pauseScreen() {
+    printf("\nPress Enter to continue...");
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF);
+    getchar();
+}
