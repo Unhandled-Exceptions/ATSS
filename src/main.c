@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <ctype.h>
 #include "flights.h"
 #include "crew.h"
+#include "utils.h"
 
-#define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
 
 int view_flight_schedules(FL *flights);
@@ -32,7 +33,6 @@ int main(int argc, char const *argv[]) {
     char db_name[100];
     char db_path[150];
 
-    // Argument handling for db
     if (argc != 2) {
         printf("Usage is\n`atss atss`\n");
         return 0;
@@ -61,18 +61,12 @@ int main(int argc, char const *argv[]) {
         sqlite3_close(the_db);
         return 1;
     }
-
-    // Display the title and copyright
-    printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
-    printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
-    
-    printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
     
     int choice;
     while (1) {
-        printf("\n> ");
-        scanf("%d",&choice);
-        
+        display_header();
+        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
+        get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
                 view_flight_schedules(&flights);
@@ -102,6 +96,10 @@ int main(int argc, char const *argv[]) {
 }
 
 int view_flight_schedules(FL *flights){
+    clear_screen();
+    printf("=========================================\n");
+    printf("          Flight Schedule       \n");
+    printf("=========================================\n\n");
     printf("------------------------------------------------------------------------------------------\n");
     printf("%-12s %-25s %-8s %-12s %-15s %-15s\n", 
            "Flight Id", "Airline", "Origin", "Destination", "Departure Time", "Arrival Time");
@@ -120,69 +118,186 @@ int view_flight_schedules(FL *flights){
             arr, arr + 2);
     }
 
-    printf("------------------------------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------------------------------\n\n");
+    pauseScreen();
     return 0;
 }
 
 void add_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
+        clear_screen();
+        printf("=========================================\n");
+        printf("          Add Flight Schedule       \n");
+        printf("=========================================\n\n");
         FD flight;
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight.flight_id);
-        printf("Enter Airline (max 24 chars) : ");
-        scanf("%24s", flight.airline);
-        printf("Enter Origin (IATA Code) : ");
-        scanf("%3s", flight.origin);
-        printf("Enter Destination (IATA Code) : ");
-        scanf("%3s", flight.destination);
-        printf("Enter Departure Time (HHMM) : ");
-        scanf("%5s", flight.departure_time);
-        printf("Enter Arrival Time (HHMM) : ");
-        scanf("%5s", flight.arrival_time);
-        printf("Enter Aircraft Type (max 30 chars) : ");
-        scanf("%30s", flight.aircraft_type);
-        printf("Enter Priority Level : ");
-        scanf("%d", &flight.priority_level);
+        get_string_input("Enter Flight ID : ", flight.flight_id, 9);
+        get_string_input("Enter Airline (max 24 chars) : ", flight.airline, 24);
+        get_string_input("Enter Origin (IATA Code) : ", flight.origin,4);
+        get_string_input("Enter Destination (IATA Code) : ", flight.destination,4);
+        get_string_input("Enter Departure Time (HHMM) : ", flight.departure_time, 5);
+        get_string_input("Enter Arrival Time (HHMM) : ", flight.arrival_time, 5);
+        get_string_input("Enter Aircraft Type (max 30 chars) : ", flight.aircraft_type, 30);
+        get_int_input("Enter new Priority Level (1 - Emergency, 2 - International, 3 - Domestic) : ", &flight.priority_level);
 
         if (insert_flight_data(&flight, flights, db, err_msg) != 0) {
             fprintf(stderr, "Failed to insert data into database\n");
         }
+
+        pauseScreen();
 }
 
-void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
-        FD flight;
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight.flight_id);
-        printf("Enter new Airline (max 24 chars) : ");
-        scanf("%24s", flight.airline);
-        printf("Enter new Origin (IATA Code) : ");
-        scanf("%3s", flight.origin);
-        printf("Enter new Destination (IATA Code) : ");
-        scanf("%3s", flight.destination);
-        printf("Enter new Departure Time (HHMM) : ");
-        scanf("%5s", flight.departure_time);
-        printf("Enter new Arrival Time (HHMM) : ");
-        scanf("%5s", flight.arrival_time);
-        printf("Enter new Aircraft Type (max 30 chars) : ");
-        scanf("%30s", flight.aircraft_type);
-        printf("Enter new Priority Level : ");
-        scanf("%d", &flight.priority_level);
+void update_flight_schedules(FL *flights, sqlite3 *db, char *err_msg) {
+    clear_screen();
+    printf("=========================================\n");
+    printf("         Update Flight Schedule       \n");
+    printf("=========================================\n\n");
 
-        if (update_flight_data(&flight, flights, db, err_msg) != 0) {
-            fprintf(stderr, "Failed to update data in database\n");
+    char flight_id_to_update[10];
+    char input_buffer[100];
+    int temp_int;
+
+    get_string_input("Enter Flight ID to update: ", flight_id_to_update, sizeof(flight_id_to_update));
+
+    FD *flight_to_update = find_flight_by_id(flight_id_to_update, flights);
+
+    if (flight_to_update == NULL) {
+        printf("\nError: Flight ID '%s' not found.\n", flight_id_to_update);
+        pauseScreen();
+        return;
+    }
+
+    FD updated_flight = *flight_to_update;
+
+    printf("\n--- Flight Details ---\n");
+    printf("Flight ID:       %s\n", updated_flight.flight_id); // ID cannot be changed
+    printf("Airline:         %s\n", updated_flight.airline);
+    printf("Origin:          %s\n", updated_flight.origin);
+    printf("Destination:     %s\n", updated_flight.destination);
+    printf("Departure Time:  %s\n", updated_flight.departure_time);
+    printf("Arrival Time:    %s\n", updated_flight.arrival_time);
+    printf("Aircraft Type:   %s\n", updated_flight.aircraft_type);
+    printf("Priority Level:  %d\n", updated_flight.priority_level);
+    printf("-----------------------------\n\n");
+    printf("Enter new details or press Enter to keep current value.\n\n");
+
+    printf("Current Airline: %s\n", flight_to_update->airline);
+    get_string_input("Enter new Airline (max 24 chars): ", input_buffer, sizeof(input_buffer));
+    if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.airline, input_buffer, sizeof(updated_flight.airline) - 1);
+        updated_flight.airline[sizeof(updated_flight.airline) - 1] = '\0'; // Ensure null termination
+    }
+
+    printf("\nCurrent Origin: %s\n", flight_to_update->origin);
+    get_string_input("Enter new Origin (IATA Code): ", input_buffer, sizeof(input_buffer));
+    if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.origin, input_buffer, sizeof(updated_flight.origin) - 1);
+        updated_flight.origin[sizeof(updated_flight.origin) - 1] = '\0';
+    }
+
+    printf("\nCurrent Destination: %s\n", flight_to_update->destination);
+    get_string_input("Enter new Destination (IATA Code): ", input_buffer, sizeof(input_buffer));
+    if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.destination, input_buffer, sizeof(updated_flight.destination) - 1);
+        updated_flight.destination[sizeof(updated_flight.destination) - 1] = '\0';
+    }
+
+    printf("\nCurrent Departure Time (HHMM): %s\n", flight_to_update->departure_time);
+    get_string_input("Enter new Departure Time (HHMM): ", input_buffer, sizeof(input_buffer));
+    if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.departure_time, input_buffer, sizeof(updated_flight.departure_time) - 1);
+        updated_flight.departure_time[sizeof(updated_flight.departure_time) - 1] = '\0';
+    }
+
+    printf("\nCurrent Arrival Time (HHMM): %s\n", flight_to_update->arrival_time);
+    get_string_input("Enter new Arrival Time (HHMM): ", input_buffer, sizeof(input_buffer));
+    if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.arrival_time, input_buffer, sizeof(updated_flight.arrival_time) - 1);
+        updated_flight.arrival_time[sizeof(updated_flight.arrival_time) - 1] = '\0';
+    }
+
+    printf("\nCurrent Aircraft Type: %s\n", flight_to_update->aircraft_type);
+    get_string_input("Enter new Aircraft Type (max 30 chars): ", input_buffer, sizeof(input_buffer));
+     if (strlen(input_buffer) > 0) {
+        strncpy(updated_flight.aircraft_type, input_buffer, sizeof(updated_flight.aircraft_type) - 1);
+         updated_flight.aircraft_type[sizeof(updated_flight.aircraft_type) - 1] = '\0';
+     }
+
+
+    printf("\nCurrent Priority Level: %d\n", flight_to_update->priority_level);
+    while (1) {
+        get_string_input("Enter new Priority Level (1-3) (or press Enter to keep): ", input_buffer, sizeof(input_buffer));
+        if (strlen(input_buffer) == 0) {
+            break;
         }
+
+        char *endptr;
+        long val = strtol(input_buffer, &endptr, 10);
+
+        if (*input_buffer != '\0' && *endptr == '\0' && val >= 1 && val <= 3) {
+             updated_flight.priority_level = (int)val;
+             break;
+        } else {
+             printf("Invalid input. Please enter a number between 1 and 3, or press Enter.\n");
+        }
+    }
+
+
+    if (update_flight_data(&updated_flight, flights, db, err_msg) != 0) {
+        fprintf(stderr, "Failed to update data in database\n");
+    }
+
+    pauseScreen();
 }
 
-void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg){
-        char flight_id[10];
-        printf("Enter Flight ID : ");
-        scanf("%9s", flight_id);
+void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg) {
+    clear_screen();
+    printf("=========================================\n");
+    printf("         Delete Flight Schedule       \n");
+    printf("=========================================\n\n");
 
-        if (delete_flight_data(flight_id, flights, db, err_msg) != 0) {
-            fprintf(stderr, "Failed to delete data from database\n");
+    char flight_id_to_delete[10];
+    char confirmation[10];
+
+    get_string_input("Enter Flight ID to delete: ", flight_id_to_delete, sizeof(flight_id_to_delete));
+
+    FD *flight_to_delete = find_flight_by_id(flight_id_to_delete, flights);
+
+    if (flight_to_delete == NULL) {
+        printf("\nError: Flight ID '%s' not found.\n", flight_id_to_delete);
+        pauseScreen();
+        return;
+    }
+
+    printf("\n--- Flight Details Found ---\n");
+    printf("Flight ID:       %s\n", flight_to_delete->flight_id);
+    printf("Airline:         %s\n", flight_to_delete->airline);
+    printf("Origin:          %s\n", flight_to_delete->origin);
+    printf("Destination:     %s\n", flight_to_delete->destination);
+    printf("Departure Time:  %.2s:%.2s\n", flight_to_delete->departure_time, flight_to_delete->departure_time + 2);
+    printf("Arrival Time:    %.2s:%.2s\n", flight_to_delete->arrival_time, flight_to_delete->arrival_time + 2);
+    printf("Aircraft Type:   %s\n", flight_to_delete->aircraft_type);
+    printf("Priority Level:  %d\n", flight_to_delete->priority_level);
+    printf("-----------------------------\n\n");
+
+    get_string_input("Are you sure you want to delete this flight? (y/n): ", confirmation, sizeof(confirmation));
+
+    if (strlen(confirmation) > 0 && toupper(confirmation[0]) == 'Y') {
+        printf("\nDeleting flight '%s'...\n", flight_id_to_delete);
+        if (delete_flight_data(flight_id_to_delete, flights, db, err_msg) != 0) {
+            fprintf(stderr, "Failed to delete data from database.\n");
         }
-} 
+    } else {
+        printf("\nDeletion cancelled.\n");
+    }
+
+    pauseScreen();
+}
 
 int view_crew_info(CL *crew_list, char *err_msg) {
+    clear_screen();
+    printf("==================================\n");
+    printf("         Crew Information       \n");
+    printf("==================================\n\n");
+
     printf("---------------------------------------------------------------------------------------------------------------\n");
     printf("%-8s %-40s %-15s %-20s %-15s\n", "Crew ID", "Name", "Designation", "Airline", "Hours Worked");
     printf("---------------------------------------------------------------------------------------------------------------\n");
@@ -197,5 +312,6 @@ int view_crew_info(CL *crew_list, char *err_msg) {
     }
 
     printf("---------------------------------------------------------------------------------------------------------------\n");
+    pauseScreen();
     return 0;
 }

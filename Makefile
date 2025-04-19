@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -I lib/
 LDFLAGS = -lpthread -ldl
-SOURCES = src/main.c src/flights.c src/crew.c lib/sqlite3.c
+SOURCES = src/main.c src/flights.c src/crew.c src/utils.c lib/sqlite3.c
 OBJECTS = $(SOURCES:.c=.o)
 EXECUTABLE = bin/atss
 
