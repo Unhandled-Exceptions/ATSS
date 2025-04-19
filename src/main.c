@@ -4,8 +4,8 @@
 #include <string.h>
 #include "flights.h"
 #include "crew.h"
+#include "utils.h"
 
-#define LOGOCOLR "\x1B[36m"
 #define AIRPORT "MAA"
 
 int view_flight_schedules(FL *flights);
@@ -32,7 +32,6 @@ int main(int argc, char const *argv[]) {
     char db_name[100];
     char db_path[150];
 
-    // Argument handling for db
     if (argc != 2) {
         printf("Usage is\n`atss atss`\n");
         return 0;
@@ -63,13 +62,12 @@ int main(int argc, char const *argv[]) {
     }
 
     // Display the title and copyright
-    printf("%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
-    printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
-    
+    display_header();
     printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Exit\n");
     
     int choice;
     while (1) {
+        
         printf("\n> ");
         scanf("%d",&choice);
         
