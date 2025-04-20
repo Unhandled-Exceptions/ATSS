@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "flights.h"
+#include "alloter.h"
 #include "crew.h"
 #include "utils.h"
 
@@ -18,6 +19,8 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 
 int view_crew_info(CL *crew_list, char *err_msg);
 void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg);
+
+int allot(sqlite3 *db, char *err_msg);
 
 int main(int argc, char const *argv[]) {
 
@@ -66,7 +69,7 @@ int main(int argc, char const *argv[]) {
     int choice;
     while (1) {
         display_header();
-        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Declare Flight Emergency\n7.Exit\n");
+        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Declare Flight Emergency\n7.View Allot\n8.Allot Flights\n9.Exit\n");
         get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
@@ -88,6 +91,12 @@ int main(int argc, char const *argv[]) {
                 handle_realtime_event(&flights, the_db, err_msg);
                 break;
             case 7:
+                view_allots(the_db, err_msg);
+                break;
+            case 8:
+                allotment(&flights, the_db, err_msg);
+                break;
+            case 9:
                 free_flight_list(&flights);
                 sqlite3_close(the_db);
                 printf("Bye !\n");

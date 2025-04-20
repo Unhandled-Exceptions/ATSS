@@ -5,6 +5,7 @@
 #define INIT_FLIGHTS_SIZE 7
 
 #include <stddef.h>
+#include <sqlite3.h>
 
 typedef struct flight_data{
     char flight_id[10];
