@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS alloted (
 CREATE TABLE IF NOT EXISTS crew_allot (
     allot_id INTEGER PRIMARY KEY,
     crew_name TEXT,
-    allotted_time INTEGER,
+    flight_id TEXT,
     FOREIGN KEY (crew_name) REFERENCES crew (name)
 );"
 
