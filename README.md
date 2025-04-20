@@ -73,3 +73,15 @@ Ask the user for clarifications for the `delay_pile`:
 Generate runway utilization and delay reports.
 Done.
 ```
+
+
+## Agorithm for crew
+
+we have 3 tables `alloted`, `crew` & `crew_allot`
+iterate through each row in `alloted`
+    using a forloop, select 4 people (two pilots two attendants)
+        if hoursworked > LIMIT choose next person,
+        else
+            add an entry to the `crew_allot` table with the flight id
+            add the hours_worked to `crew`
+Done.
