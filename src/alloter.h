@@ -7,6 +7,7 @@
 #include <sqlite3.h>
 #include <stddef.h>
 #include <math.h>
+#include "utils.h"
 
 typedef struct alloted_data {
     int allot_id;

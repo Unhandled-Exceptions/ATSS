@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
 
 /*
 Prints allotment table to console.
@@ -27,6 +28,8 @@ void view_allots(sqlite3 *db, char *err_msg)
 
         return;
     }
+
+    pauseScreen();
     return;
 }
 
@@ -228,4 +231,6 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                       db, err_msg);
         }
     }
+
+    pauseScreen();
 }
