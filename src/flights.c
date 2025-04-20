@@ -178,3 +178,15 @@ int delete_flight_data(char *flight_id, FL *flights, sqlite3 *db, char *err_msg)
     sqlite3_free(query);
     return 0;
 }
+
+FD* find_flight_by_id(const char *flight_id, FL *flights) {
+    if (!flight_id || !flights || !flights->flight) {
+        return NULL;
+    }
+    for (size_t i = 0; i < flights->size; i++) {
+        if (strcmp(flights->flight[i].flight_id, flight_id) == 0) {
+            return &(flights->flight[i]);
+        }
+    }
+    return NULL;
+}

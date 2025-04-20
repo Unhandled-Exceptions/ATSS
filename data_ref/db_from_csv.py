@@ -28,7 +28,7 @@ with open(CREW_FILE, "r") as file:
     reader = csv.reader(file)
     next(reader)  # Skip header row
     for row in reader:
-        cursor.execute("INSERT INTO crew VALUES (?, ?, ?, ?)", row)
+        cursor.execute("INSERT INTO crew (name, designation, airline, hours_worked) VALUES (?, ?, ?, ?);", row)
 
 # Commit changes and close the connection
 conn.commit()

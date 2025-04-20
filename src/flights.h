@@ -20,7 +20,7 @@ typedef struct flight_data{
 } FD;
 
 typedef struct flights_list{
-    struct flight_data *flight;
+    FD *flight;
     size_t size;
     size_t allocated;
 } FL;
@@ -33,5 +33,6 @@ void load_flights_data_cb(void *fl, int argc, char **argv, char **azColName);
 int insert_flight_data(FD *flight, FL *flights, sqlite3 *db, char *err_msg);
 int update_flight_data(FD *flight, FL *flights, sqlite3 *db, char *err_msg);
 int delete_flight_data(char *flight_id, FL *flights, sqlite3 *db, char *err_msg);
+FD* find_flight_by_id(const char *flight_id, FL *flights);
 
 #endif
