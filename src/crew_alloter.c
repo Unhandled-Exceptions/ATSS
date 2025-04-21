@@ -40,37 +40,12 @@ float calculate_flight_duration_hours(const char *departure_time, const char *ar
     return (float)duration_mins / 60.0f;
 }
 
-int create_crew_allotment_table(sqlite3 *db, char **err_msg) {
-    const char *sql =
-        "CREATE TABLE IF NOT EXISTS crew_allotments ("
-        "  allotment_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "  flight_id TEXT NOT NULL,"
-        "  crew_id INTEGER NOT NULL,"
-        "  assignment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-        "  FOREIGN KEY (flight_id) REFERENCES flights(flight_id) ON DELETE CASCADE,"
-        "  FOREIGN KEY (crew_id) REFERENCES crew(crew_id) ON DELETE CASCADE"
-        ");";
-
-    int rc = sqlite3_exec(db, sql, 0, 0, err_msg);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error creating crew_allotments table: %s\n", *err_msg);
-        return 1;
-    }
-    printf("Crew allotments table checked/created successfully.\n");
-    return 0;
-}
-
 
 int allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, char **err_msg) {
     clear_screen();
     printf("=========================================\n");
     printf("         Starting Crew Allotment       \n");
     printf("=========================================\n\n");
-
-    if (create_crew_allotment_table(db, err_msg) != 0) {
-        pauseScreen();
-        return 1;
-    }
 
     char *delete_sql = "DELETE FROM crew_allotments;";
     int rc = sqlite3_exec(db, delete_sql, 0, 0, err_msg);
@@ -169,7 +144,7 @@ int allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, char **err_m
                 !crew_assigned_in_this_run[j] &&
                 !assigned_to_this_flight[j] )
             {
-                printf("    Found suitable Pilot: %s (ID: %d, Hrs: %d)\n", crew->name, crew->crew_id, crew->hours_worked);
+                // printf("    Found suitable Pilot: %s (ID: %d, Hrs: %d)\n", crew->name, crew->crew_id, crew->hours_worked);
                 assigned_crew_indices[assigned_count++] = j;
                 assigned_to_this_flight[j] = true;
                 pilots_found++;
@@ -184,7 +159,7 @@ int allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, char **err_m
                 !crew_assigned_in_this_run[j] &&
                 !assigned_to_this_flight[j] )
              {
-                printf("    Found suitable Attendant: %s (ID: %d, Hrs: %d)\n", crew->name, crew->crew_id, crew->hours_worked);
+                // printf("    Found suitable Attendant: %s (ID: %d, Hrs: %d)\n", crew->name, crew->crew_id, crew->hours_worked);
                 assigned_crew_indices[assigned_count++] = j;
                 assigned_to_this_flight[j] = true;
                 attendants_found++;
@@ -215,7 +190,6 @@ int allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, char **err_m
                     sqlite3_free(*err_msg);
                     *err_msg = NULL;
                 } else {
-                    printf("    -> Assigned %s (ID: %d) to flight %s. Updating hours.\n", assigned_crew->name, assigned_crew->crew_id, current_flight_id);
                     assigned_crew->hours_worked += (int)(duration_h + 0.5f);
                     crew_assigned_in_this_run[crew_index] = true;
                 }

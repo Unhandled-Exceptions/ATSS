@@ -19,7 +19,12 @@ rm data/atss.db
 ./scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
 ```
-
+or
+```
+rm data/atss.db
+./scripts/create_atss_db.sh
+./data_ref/db_from_csv.py data/flights_big.csv data/crew_big.csv data/atss.db
+```
 ## Project Directory Structure:
 
 ~~~
