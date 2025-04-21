@@ -14,10 +14,18 @@ Somebody please make it look good and match with modern formatting.
 void view_allots(sqlite3 *db, char *err_msg)
 {
     // printf("Inside view allot fun\n");
+    clear_screen();
     char *query = "SELECT * FROM alloted ORDER BY allotted_time;";
 
-    printf("ID\tFLIGHT ID\tTIME\tRUNWAY\n");
+    printf("=========================================\n");
+    printf("          Flight Allotment       \n");
+    printf("=========================================\n\n");
+    printf("-------------------------------------------------\n");
+    printf("%-12s %-12s %-12s %-12s\n", "ID", "FLIGHT ID", "TIME", "RUNWAY");
+    printf("-------------------------------------------------\n");
+
     int rc = sqlite3_exec(db, query, view_allots_cb, 0, &err_msg);
+    printf("-------------------------------------------------\n");
 
     if (rc != SQLITE_OK) {
 
@@ -38,7 +46,7 @@ int view_allots_cb(void *NotUsed, int argc, char **argv, char **azColName)
 {
     NotUsed = 0;
 
-    printf("%s\t %s\t %s\t %s\n",
+    printf("%-12s %-12s %-12s %-12s\n",
            argv[0] ? argv[0] : "NULL",
            argv[1] ? argv[1] : "NULL",
            argv[2] ? argv[2] : "NULL",
@@ -175,6 +183,10 @@ it deletes the prexisting table
 void allotment(FL *flights, sqlite3 *db, char *err_msg)
 {
     // Declaration of variables
+    printf("=========================================\n");
+    printf("          Starting Flight Allotment       \n");
+    printf("=========================================\n\n");
+    printf("-------------------------------------------------\n");
     char delaypile[50][10];
     int delaycount = 0;
 
@@ -201,6 +213,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         AD prevAllot = get_last_alloted_flight(flights, 1, db, err_msg);
 
         int diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
+        printf("\n------------------------------------------------------\n");
         printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
 
         if (diff < 15) {
