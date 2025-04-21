@@ -10,22 +10,6 @@
 #include "crew.h"
 #include "utils.h"
 
-typedef struct {
-    char flight_id[10];
-} AllottedFlightInfo;
-
-typedef struct {
-    AllottedFlightInfo *flights;
-    size_t size;
-    size_t allocated;
-} AllottedFlightList;
-
-static int get_allotted_flights_cb(void *data, int argc, char **argv, char **azColName);
-static void init_allotted_flight_list(AllottedFlightList *list, size_t initial_size);
-static void add_to_allotted_flight_list(AllottedFlightList *list, const char *flight_id);
-static void free_allotted_flight_list(AllottedFlightList *list);
-
-
 float calculate_flight_duration_hours(const char *departure_time, const char *arrival_time) {
     if (!departure_time || !arrival_time || strlen(departure_time) != 4 || strlen(arrival_time) != 4) {
         fprintf(stderr, "Error: Invalid time format for duration calculation.\n");
