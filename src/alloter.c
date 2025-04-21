@@ -81,9 +81,10 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
         }
     }
 
-    printf("It's not a valid flight\n");
+    printf("There are no flights in this runway\n");
     return invalid_allot;
 }
+
 // Internal CB for sqlite
 int get_last_alloted_flight_cb(void *la, int argc, char **argv, char **azColName)
 {
@@ -200,7 +201,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         AD prevAllot = get_last_alloted_flight(flights, 1, db, err_msg);
 
         int diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
-        // printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
+        printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
 
         if (diff < 15) {
             printf("Conflicting...\n");
@@ -212,11 +213,11 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 int diff;
                 // First time runway alloc
                 if (prevAllot.allot_id == -1) {
-                    diff = 0;
+                    diff = 1000;
                 }
                 else {
                     diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
-                    // printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
+                    printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
                 }
 
                 if (diff > 15) {
