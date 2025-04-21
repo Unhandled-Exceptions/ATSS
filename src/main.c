@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "flights.h"
 #include "alloter.h"
+#include "crew_alloter.h"
 #include "crew.h"
 #include "utils.h"
 
@@ -69,7 +70,18 @@ int main(int argc, char const *argv[]) {
     int choice;
     while (1) {
         display_header();
-        printf("\n\nMenu:\n1.View Flight Schedules\n2.Add Flight Schedules\n3.Update Flight Schedules\n4.Delete Flight Schedules\n5.View Flight Crew Information\n6.Declare Flight Emergency\n7.View Allot\n8.Allot Flights\n9.Exit\n");
+        printf("\n\nMenu:\n");
+        printf("1. View Flight Schedules\n");
+        printf("2. Add Flight Schedules\n");
+        printf("3. Update Flight Schedules\n");
+        printf("4. Delete Flight Schedules\n");
+        printf("5. View Flight Crew Information\n");
+        printf("6. Declare Flight Emergency\n");
+        printf("7. View Runway Allotments\n");
+        printf("8. Allot Runways to Flights\n");
+        printf("9. Allot Crew to Flights\n");
+        printf("10. View Crew Allotments\n");
+        printf("11. Exit\n"); 
         get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
@@ -96,13 +108,38 @@ int main(int argc, char const *argv[]) {
             case 8:
                 allotment(&flights, the_db, err_msg);
                 break;
-            case 9:
-                free_flight_list(&flights);
-                sqlite3_close(the_db);
-                printf("Bye !\n");
-                exit(0);
-            default:
-                printf("Invalid choice !\n");
+            case 9: 
+                printf("Starting crew allotment...\n");
+                if (allot_crew_for_flights(&flights, &crew_list, the_db, &err_msg) == 0) {
+                    printf("Reloading crew data after crew allotment...\n");
+                    free_crew_list(&crew_list); // Free old list
+                    init_crew_list(&crew_list, INIT_CREW_SIZE); // Reinitialize
+                    if (load_crew_data(&crew_list, the_db, err_msg) != 0) {
+                        fprintf(stderr, "WARNING: Failed to reload crew data after crew allotment!\n");
+                    } else {
+                        printf("Crew data reloaded.\n");
+                    }
+                } else {
+                    fprintf(stderr, "Crew allotment process encountered errors.\n");
+                    sqlite3_free(err_msg);
+                    err_msg = NULL;
+                }
+                break;
+           case 10:
+               view_crew_allotments(the_db, &err_msg);
+                if (err_msg) { 
+                    sqlite3_free(err_msg);
+                    err_msg = NULL;
+                }
+               break;
+           case 11:
+               free_flight_list(&flights);
+               free_crew_list(&crew_list);
+               sqlite3_close(the_db);
+               printf("Bye !\n");
+               exit(0);
+           default:
+               printf("Invalid choice !\n");
         }
     }
     return 0;  
