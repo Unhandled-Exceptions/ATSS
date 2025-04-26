@@ -75,7 +75,7 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
     // Linear search through the flight array
     for (int i = 0; i < flights->size; i++) {
         if (strcmp(flights->flight[i].flight_id, last_allot.flight_id) == 0) {
-            printf("It's a valid flight with ID %s\n", flights->flight[i].flight_id);
+            // printf("It's a valid flight with ID %s\n", flights->flight[i].flight_id);
             // return flights->flight[i];
             return last_allot;
         }
@@ -138,6 +138,7 @@ void add_allot(char *flight_id, char *alloted_time, int runway, sqlite3 *db, cha
     }
     else {
         printf("Alloted flight %s!\n", flight_id);
+        return;
     }
 }
 
@@ -205,6 +206,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
 
         if (diff < 15) {
             printf("Conflicting...\n");
+            int resolved_flag = 0;
             for (int r = 2; r <= 3; r++) {
                 printf("  Changing runway to %d\n", r);
 
@@ -217,21 +219,24 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 }
                 else {
                     diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
-                    printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
                 }
 
+                printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
                 if (diff > 15) {
                     add_allot(flights->flight[i].flight_id, flights->flight[i].runway_time, r,
                               db, err_msg);
+                    resolved_flag = 1;
                     break;
                 }
             }
 
             // Implement the priority switchup here.
 
-            printf("Cannot find runway, moving to delay pile.\n");
-            strcpy(delaypile[delaycount], flights->flight[i].flight_id);
-            delaycount++;
+            if (resolved_flag == 0) {
+                printf("Cannot find runway, moving to delay pile.\n");
+                strcpy(delaypile[delaycount], flights->flight[i].flight_id);
+                delaycount++;
+            }
         }
         else {
             // printf("No Conflict\n");
