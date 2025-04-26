@@ -76,9 +76,26 @@ int get_int_input(const char *prompt, int *value) {
 
 void display_header(){
     clear_screen();
-    printf(" __  _\n\\ `/ |\n \\__`!\n / ,' `-.__________________\n'-'\\_____                LI`-\\\n   <____()-=O=O=O=O=O=[]====--)\n     `.___ ,-----,_______...-'\n          /    .'\n         /   .'\n        /  .'            \n        `-'");
-    printf("\n%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
-    printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
+    printf(
+        // Line 1: Title (24 chars) + 4 spaces padding + Plane
+        "\n\e[1m%s    ___  ________________    "          "        _ \n"
+        // Line 2: Title (25 chars) + 3 spaces padding + Plane
+        "   /   |/_  __/ ___/ ___/   "          "      -=\\`\\ \n"
+        // Line 3: Title (26 chars) + 2 spaces padding + Plane
+        "  / /| | / /  \\__ \\\\__ \\  "          "    |\\ ____\\_\\__ \n"
+        // Line 4: Title (26 chars) + 2 spaces padding + Plane
+        " / ___ |/ /  ___/ /__/ /  "          "  -=\\c`\"\"\"\"\"\"\" \"`) \n"
+        // Line 5: Title (26 chars) + 2 spaces padding + Plane
+        "/_/  |_/_/  /____/____/   "          "     `~~~~~/ /~~` \n"
+        // Line 6: No Title (28 spaces padding) + Plane
+        "                            "          "     -==/ / \n"
+        // Line 7: No Title (28 spaces padding) + Plane + Reset Code
+        "                            "          "       '-' \n\x1B[0m"
+        , LOGOCOLR); // Pass the LOGOCOLR variable
+
+        printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
+
+
 }
 
 void pauseScreen() {
