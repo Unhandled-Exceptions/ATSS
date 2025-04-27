@@ -30,4 +30,22 @@ enum
 GtkWidget *create_flights_info_window(sqlite3 *db);
 
 // Flights Information Window - Ends
+
+// Crew Information Window - Starts
+
+extern CL crew_list;
+
+// Crew Info (CI) Table Columns
+enum
+{
+  CI_CREW_ID = 0,
+  CI_NAME,
+  CI_DESIGNATION,
+  CI_AIRLINE,
+  CI_HOURS_WORKED,
+  CI_NUM_COLS
+} ;
+
+GtkWidget *create_crew_info_window(sqlite3 *db);
+// Crew Information Window - Ends
 #endif

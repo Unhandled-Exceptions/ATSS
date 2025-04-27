@@ -27,9 +27,6 @@ int main(int argc, char *argv[]) {
 
     char *err_msg = 0;
 
-
-    init_crew_list(&crew_list, INIT_CREW_SIZE);
-
     const char *db_path = "data/atss.db"; // Hard Coding DB Path for now
 
     int rc = sqlite3_open(db_path, &the_db);
@@ -75,9 +72,9 @@ static void create_main_view(GtkWidget *window){
     gtk_stack_add_named(GTK_STACK(stack), flights_info_window, "flight_info");
     gtk_container_child_set(GTK_CONTAINER(stack), flights_info_window, "title", "Flights Information", NULL);
     
-    GtkWidget *label2 = gtk_label_new("Crew Information Here !!");
-    gtk_stack_add_named(GTK_STACK(stack), label2, "crew_info");
-    gtk_container_child_set(GTK_CONTAINER(stack), label2, "title", "Crew Information", NULL);
+    GtkWidget *crew_info_window = create_crew_info_window(the_db);
+    gtk_stack_add_named(GTK_STACK(stack), crew_info_window, "crew_info");
+    gtk_container_child_set(GTK_CONTAINER(stack), crew_info_window, "title", "Crew Information", NULL);
 
     GtkWidget *label3 = gtk_label_new("Flight Alloter Here !!");
     gtk_stack_add_named(GTK_STACK(stack), label3, "flight_alloter");

@@ -60,7 +60,7 @@ GtkWidget *create_flights_info_window(sqlite3 *db){
     if (load_flights_data(&flights, db, err_msg) != 0) {
         g_error("Failed to load flights data from database\n");
         sqlite3_close(db);
-        exit(0);
+        exit(1);
     }
 
 
@@ -107,3 +107,90 @@ GtkWidget *create_flights_info_window(sqlite3 *db){
 }
 
 // Flights Information Window - Ends
+
+// Crew Information Window - Starts
+static GtkTreeModel *populate_crew_info_model (){
+    GtkListStore *store = gtk_list_store_new(CI_NUM_COLS, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT);
+
+    GtkTreeIter iter;
+
+    for (int i = 0; i < crew_list.size; i++){
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter, CI_CREW_ID, crew_list.crew[i].crew_id, CI_NAME, crew_list.crew[i].name, CI_DESIGNATION, crew_list.crew[i].designation, CI_AIRLINE, crew_list.crew[i].airline, CI_HOURS_WORKED, crew_list.crew[i].hours_worked, -1);
+    }
+
+    return GTK_TREE_MODEL (store);
+}
+
+static GtkWidget *create_crew_info_table (void){
+    GtkWidget *table = gtk_tree_view_new();
+    GtkCellRenderer *renderer;
+
+    char *cols[] = {"Crew ID", "Name", "Designation","Airline", "Hours Worked"};
+
+    for (int i = 0; i < CI_NUM_COLS; i++){
+        renderer = gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW (table), -1, cols[i], renderer,"text", i, NULL);
+    }
+
+    GtkTreeModel *model = populate_crew_info_model();
+    gtk_tree_view_set_model (GTK_TREE_VIEW (table), model);
+
+    g_object_unref (model);
+
+    return table;
+}
+
+GtkWidget *create_crew_info_window(sqlite3 *db){
+
+    char *err_msg = 0;
+    init_crew_list(&crew_list, INIT_CREW_SIZE);
+
+    if (load_crew_data(&crew_list, db, err_msg) != 0) {
+        g_error("Failed to load crew data from database\n");
+        sqlite3_close(db);
+        exit(1);
+    }
+
+    GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
+    
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *frame = gtk_frame_new ("Actions");
+
+    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
+
+    gtk_container_add (GTK_CONTAINER (frame), bbox);
+    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10); 
+    
+    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
+    gtk_box_set_spacing (GTK_BOX (bbox), 10);
+
+    GtkWidget *add_crew_btn = gtk_button_new_with_label("Add Crew");
+    GtkWidget *update_crew_btn = gtk_button_new_with_label("Update Crew");
+    GtkWidget *delete_crew_btn = gtk_button_new_with_label("Delete Crew");
+    
+    gtk_container_add (GTK_CONTAINER (bbox), add_crew_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), update_crew_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), delete_crew_btn);
+
+    // The Table !!
+
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN); // Optional: adds a nice border
+
+    GtkWidget *table = create_crew_info_table();
+    gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
+
+
+    return win_box;
+}
+// Crew Information Window - Ends
