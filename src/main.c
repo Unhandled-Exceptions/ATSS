@@ -71,17 +71,18 @@ int main(int argc, char const *argv[]) {
     while (1) {
         display_header();
         printf("\n\nMenu:\n");
-        printf("1. View Flight Schedules\n");
-        printf("2. Add Flight Schedules\n");
-        printf("3. Update Flight Schedules\n");
-        printf("4. Delete Flight Schedules\n");
-        printf("5. View Flight Crew Information\n");
-        printf("6. Declare Flight Emergency\n");
-        printf("7. View Runway Allotments\n");
-        printf("8. Allot Runways to Flights\n");
-        printf("9. Allot Crew to Flights\n");
+        printf("1.  View Flight Schedules\n");
+        printf("2.  Add Flight Schedules\n");
+        printf("3.  Update Flight Schedules\n");
+        printf("4.  Delete Flight Schedules\n\n");
+        printf("5.  View Flight Crew Information\n\n");
+        printf("6.  Declare Flight Emergency\n\n");
+        printf("7.  View Runway Allotments\n");
+        printf("8.  Allot Runways to Flights\n");
+        printf("9.  Allot Crew to Flights\n");
         printf("10. View Crew Allotments\n");
-        printf("11. Exit\n"); 
+        printf("11. Runway Utilization Report\n");
+        printf("12. Exit\n"); 
         get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
@@ -132,7 +133,10 @@ int main(int argc, char const *argv[]) {
                     err_msg = NULL;
                 }
                break;
-           case 11:
+            case 11:
+                utilization_report(&flights, the_db, err_msg);
+                break;
+           case 12:
                free_flight_list(&flights);
                free_crew_list(&crew_list);
                sqlite3_close(the_db);
