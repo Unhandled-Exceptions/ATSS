@@ -183,13 +183,13 @@ void remove_allot(char *flight_id, int runway, sqlite3 *db, char *err_msg)
     }
 }
 
-int time_in_minutes(const char *time1)
+int time_in_minutes(const char *time)
 {
-    if (time1 == NULL || strlen(time1) != 4) {
+    if (time == NULL || strlen(time) != 4) {
         return -1; // Indicate invalid input
     }
-    int hour1 = (time1[0] - '0') * 10 + (time1[1] - '0');
-    int minute1 = (time1[2] - '0') * 10 + (time1[3] - '0');
+    int hour1 = (time[0] - '0') * 10 + (time[1] - '0');
+    int minute1 = (time[2] - '0') * 10 + (time[3] - '0');
 
     if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59) {
         printf("\tInvalid time format.\n");
@@ -203,23 +203,8 @@ int time_in_minutes(const char *time1)
 
 int timedifference(const char *time1, const char *time2)
 {
-    if (time1 == NULL || time2 == NULL || strlen(time1) != 4 || strlen(time2) != 4) {
-        return -1; // Indicate invalid input
-    }
-
-    int hour1 = (time1[0] - '0') * 10 + (time1[1] - '0');
-    int minute1 = (time1[2] - '0') * 10 + (time1[3] - '0');
-    int hour2 = (time2[0] - '0') * 10 + (time2[1] - '0');
-    int minute2 = (time2[2] - '0') * 10 + (time2[3] - '0');
-
-    if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59 ||
-        hour2 < 0 || hour2 > 23 || minute2 < 0 || minute2 > 59) {
-        printf("\tInvalid time format.\n");
-        return -1; // Indicate invalid time format
-    }
-
-    int totalMinutes1 = hour1 * 60 + minute1;
-    int totalMinutes2 = hour2 * 60 + minute2;
+    int totalMinutes1 = time_in_minutes(time1);
+    int totalMinutes2 = time_in_minutes(time2);
 
     return abs(totalMinutes1 - totalMinutes2);
 }
