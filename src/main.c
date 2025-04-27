@@ -455,14 +455,10 @@ void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
                 };
 
                 const char *event_type = emergency_types[event_choice - 1];
-                char timestamp[100];
-                time_t now = time(NULL);
-                strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
-
                 char sql[512];
                 snprintf(sql, sizeof(sql),
-                         "INSERT INTO flight_emergencies (flight_id, emergency_type, timestamp) VALUES ('%s', '%s', '%s');",
-                         flight_to_update->flight_id, event_type, timestamp);
+                         "INSERT INTO flight_emergencies (flight_id, emergency_type) VALUES ('%s', '%s');",
+                         flight_to_update->flight_id, event_type);
 
                 sqlite3_stmt *stmt;
                 int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
@@ -490,10 +486,10 @@ void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
 void view_flight_emergencies(FL *flights, sqlite3 *db, char *err_msg) {
     clear_screen();
     printf("=========================================\n");
-    printf("       Declare Flight Emergency     \n");
+    printf("      View Declared Flight Emergencies   \n");
     printf("=========================================\n\n");
 
-    const char *sql = "SELECT flight_id, emergency_type, timestamp FROM flight_emergencies ORDER BY timestamp DESC;";
+    const char *sql = "SELECT flight_id, emergency_type FROM flight_emergencies ORDER BY flight_id;";
     sqlite3_stmt *stmt;
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
 
@@ -502,17 +498,16 @@ void view_flight_emergencies(FL *flights, sqlite3 *db, char *err_msg) {
         return;
     }
 
-    printf("%-12s %-20s %-25s\n", "Flight ID", "Emergency Type", "Emergency Timestamp");
-    printf("------------------------------------------------------\n");
+    printf("%-12s %-20s\n", "Flight ID", "Emergency Type");
+    printf("--------------------------------\n");
 
     int found = 0;
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
         const unsigned char *flight_id = sqlite3_column_text(stmt, 0);
         const unsigned char *emergency_type = sqlite3_column_text(stmt, 1);
-        const unsigned char *timestamp = sqlite3_column_text(stmt, 2);
 
-        printf("%-12s %-20s %-25s\n", flight_id, emergency_type, timestamp);
+        printf("%-12s %-20s\n", flight_id, emergency_type);
         found = 1;
     }
 

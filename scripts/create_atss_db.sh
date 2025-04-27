@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS flight_emergencies (
     emergency_id INTEGER PRIMARY KEY AUTOINCREMENT,
     flight_id TEXT NOT NULL,
     emergency_type TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
     FOREIGN KEY (flight_id) REFERENCES flights(flight_id) ON DELETE CASCADE
 );
 
