@@ -15,8 +15,13 @@ void view_allots(sqlite3 *db, char *err_msg)
 {
     // printf("Inside view allot fun\n");
     char *query = "SELECT * FROM alloted ORDER BY allotted_time;";
-
-    printf("ID\tFLIGHT ID\tTIME\tRUNWAY\n");
+    clear_screen();
+    printf("=========================================\n");
+    printf("            Flight Allotments            \n");
+    printf("=========================================\n\n");
+    printf("-----------------------------------------\n");
+    printf("%-6s %-12s %-8s %s\n","ID", "Flight ID", "Time", "Runway");
+    printf("-----------------------------------------\n");
     int rc = sqlite3_exec(db, query, view_allots_cb, 0, &err_msg);
 
     if (rc != SQLITE_OK) {
@@ -38,7 +43,7 @@ int view_allots_cb(void *NotUsed, int argc, char **argv, char **azColName)
 {
     NotUsed = 0;
 
-    printf("%s\t %s\t %s\t %s\n",
+    printf("%-6s %-12s %-8s %s\n",
            argv[0] ? argv[0] : "NULL",
            argv[1] ? argv[1] : "NULL",
            argv[2] ? argv[2] : "NULL",
@@ -206,6 +211,8 @@ it deletes the prexisting table
 */
 void allotment(FL *flights, sqlite3 *db, char *err_msg)
 {
+    clear_screen();
+
     // Declaration of variables
     char delaypile[50][10];
     int delaycount = 0;
@@ -320,6 +327,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 printf("New Timing: ");
                 char newtime[5];
                 scanf(" %s", newtime);
+                add_allot(flights->flight[i].flight_id, newtime,1, db, err_msg);
                 printf("Flight delayed to %s\n", newtime);
                 fflush(stdout);
             }

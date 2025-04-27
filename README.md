@@ -85,3 +85,14 @@ iterate through each row in `alloted`
             add an entry to the `crew_allot` table with the flight id
             add the hours_worked to `crew`
 Done.
+
+
+## Finding time slots for delay
+
+Params are `flight id` and current `runway_time`
+Iterate through each runway
+    Iterate through each flight after current `runway_time`,
+        If a slot is found, display it, ask for confirmation.
+        yes => break;
+        no slot found, switch runway. and check again.
+No runways are free, then say that the only option is to cancel.
