@@ -17,12 +17,13 @@ void view_allots(sqlite3 *db, char *err_msg)
     clear_screen();
     char *query = "SELECT * FROM alloted ORDER BY allotted_time;";
 
+    clear_screen();
     printf("=========================================\n");
-    printf("          Flight Allotment       \n");
+    printf("            Flight Allotments            \n");
     printf("=========================================\n\n");
-    printf("-------------------------------------------------\n");
-    printf("%-12s %-12s %-12s %-12s\n", "ID", "FLIGHT ID", "TIME", "RUNWAY");
-    printf("-------------------------------------------------\n");
+    printf("-----------------------------------------\n");
+    printf("%-6s %-12s %-8s %s\n","ID", "Flight ID", "Time", "Runway");
+    printf("-----------------------------------------\n");
 
     int rc = sqlite3_exec(db, query, view_allots_cb, 0, &err_msg);
     printf("-------------------------------------------------\n");
@@ -46,7 +47,7 @@ int view_allots_cb(void *NotUsed, int argc, char **argv, char **azColName)
 {
     NotUsed = 0;
 
-    printf("%-12s %-12s %-12s %-12s\n",
+    printf("%-6s %-12s %-8s %s\n",
            argv[0] ? argv[0] : "NULL",
            argv[1] ? argv[1] : "NULL",
            argv[2] ? argv[2] : "NULL",
@@ -61,8 +62,8 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
 {
     // printf("Inside view allot fun\n");
 
-    AD last_allot;
-    AD invalid_allot;
+    AD last_allot = {0}; // This thing must be initialised as 0.
+    AD invalid_allot = {0};
     invalid_allot.allot_id = -1;
 
     char *query_template = "SELECT * FROM alloted WHERE runway=%d ORDER BY allotted_time DESC LIMIT 1;";
@@ -80,16 +81,22 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
         return invalid_allot;
     }
 
+    // DEBUG TO FIX RUNWAY 3 BEING AVOIDED.
+    // if (runway == 3)
+    // {
+    //     printf("\e[1m R3 Special Case: %s\n\e[0m", last_allot.flight_id);
+    // }
+
     // Linear search through the flight array
     for (int i = 0; i < flights->size; i++) {
         if (strcmp(flights->flight[i].flight_id, last_allot.flight_id) == 0) {
-            printf("It's a valid flight with ID %s\n", flights->flight[i].flight_id);
+            // printf("It's a valid flight with ID %s\n", flights->flight[i].flight_id);
             // return flights->flight[i];
             return last_allot;
         }
     }
 
-    printf("There are no flights in this runway\n");
+    printf("  There are no flights in this runway\n");
     return invalid_allot;
 }
 
@@ -113,8 +120,6 @@ int get_last_alloted_flight_cb(void *la, int argc, char **argv, char **azColName
 
     return 0;
 }
-
-void remove_last_alloted_flight();
 
 /*
 Adds a flight to the allot table.
@@ -146,6 +151,35 @@ void add_allot(char *flight_id, char *alloted_time, int runway, sqlite3 *db, cha
     }
     else {
         printf("Alloted flight %s!\n", flight_id);
+        return;
+    }
+}
+
+/*
+Removes the last instance of given flight ID.
+*/
+void remove_allot(char *flight_id, int runway, sqlite3 *db, char *err_msg)
+{
+    // ORDER BY ERROR IN SQLITE
+    // char *query_template = "DELETE FROM alloted WHERE runway=%d AND flight_id=%s ORDER BY allotted_time DESC LIMIT 1;";
+    char *query_template = "DELETE FROM alloted WHERE flight_id='%s';";
+    char *query = sqlite3_mprintf(query_template, flight_id);
+
+    if (query == NULL) {
+        printf("Memory allocation for the query failed :(\n");
+    }
+
+    int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK) {
+        printf("remove_allot(): SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_free(query);
+        return;
+    }
+    else {
+        printf("Removed flight %s!\n", flight_id);
+        return;
     }
 }
 
@@ -162,6 +196,7 @@ int timedifference(const char *time1, const char *time2)
 
     if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59 ||
         hour2 < 0 || hour2 > 23 || minute2 < 0 || minute2 > 59) {
+        printf("\tInvalid time format.\n");
         return -1; // Indicate invalid time format
     }
 
@@ -174,14 +209,14 @@ int timedifference(const char *time1, const char *time2)
 /*
 Allotment func - Implemented using algo given in README
 current code is very skeletony.
-Work on making `diff` proper and better logic.
 
 As of now, I'm making it so that each time this function is called
 it deletes the prexisting table
-
 */
 void allotment(FL *flights, sqlite3 *db, char *err_msg)
 {
+    clear_screen();
+
     // Declaration of variables
     printf("=========================================\n");
     printf("          Starting Flight Allotment       \n");
@@ -217,11 +252,13 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
 
         if (diff < 15) {
-            printf("Conflicting...\n");
+            printf("\e[33mConflicting...\e[0m\n");
+            int resolved_flag = 0;
             for (int r = 2; r <= 3; r++) {
                 printf("  Changing runway to %d\n", r);
 
                 AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
+                // printf("  Last alloted flight in runway %d is %d\n", r, prevAllot.allot_id);
 
                 int diff;
                 // First time runway alloc
@@ -230,21 +267,48 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 }
                 else {
                     diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
-                    printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
                 }
 
+                printf("  PREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", prevAllot.allotted_time, flights->flight[i].runway_time, diff);
                 if (diff > 15) {
                     add_allot(flights->flight[i].flight_id, flights->flight[i].runway_time, r,
                               db, err_msg);
+                    resolved_flag = 1;
                     break;
                 }
             }
 
-            // Implement the priority switchup here.
+            // Priority switchup.
+            if (resolved_flag == 0) {
+                // Looping through runways once again with the intention to remove lower priority flights.
+                for (int r = 1; r <= 3; r++) {
+                    printf("  Changing runway to %d\n", r);
 
-            printf("Cannot find runway, moving to delay pile.\n");
-            strcpy(delaypile[delaycount], flights->flight[i].flight_id);
-            delaycount++;
+                    AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
+                    // printf("  Last alloted flight in runway %d is %d\n", r, prevAllot.allot_id);
+
+                    int cur_priority = flights->flight[i].priority_level;
+                    int prev_priority = find_flight_by_id(prevAllot.flight_id, flights)->priority_level;
+                    if (cur_priority < prev_priority) {
+                        printf("\e[1;36m  Higher priority flight, putting flight %s in delay pile\n\e[0m", prevAllot.flight_id);
+                        remove_allot(prevAllot.flight_id, prevAllot.runway, db, err_msg);
+
+                        strcpy(delaypile[delaycount], prevAllot.flight_id);
+                        delaycount++;
+
+                        add_allot(flights->flight[i].flight_id, flights->flight[i].runway_time, r,
+                                  db, err_msg);
+                        resolved_flag = 1;
+                        break;
+                    }
+                }
+            }
+
+            if (resolved_flag == 0) {
+                printf("Cannot find runway, moving to delay pile.\n");
+                strcpy(delaypile[delaycount], flights->flight[i].flight_id);
+                delaycount++;
+            }
         }
         else {
             // printf("No Conflict\n");
@@ -257,10 +321,31 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("Everything is properly alloted.\n");
     }
     else {
-        printf("Conflicting Flights\n");
+        printf("\e[33;1;4mConflicting Flights\e[0m\n");
+        printf("c to cancel, d to delay\n");
         for (int i = 0; i < delaycount; i++) {
-            printf("\t%s", delaypile[i]);
+            char op;
+            printf("%s: ", delaypile[i]);
+            fflush(stdin);
+            scanf("%c", &op);
+            if (op == 'c') {
+                printf("Flight Cancelled!\n");
+                fflush(stdout);
+            }
+            else if (op == 'd') {
+                printf("New Timing: ");
+                char newtime[5];
+                scanf(" %s", newtime);
+                add_allot(flights->flight[i].flight_id, newtime,1, db, err_msg);
+                printf("Flight delayed to %s\n", newtime);
+                fflush(stdout);
+            }
+            fflush(stdin);
         }
+        printf("Conflicts resolved!");
+        scanf("%c"); // Absorber of \n;
+        fflush(stdout);
+        fflush(stdin);
     }
 
     pauseScreen();

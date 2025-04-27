@@ -17,7 +17,7 @@ To reset the db.
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh
-./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
+./data_ref/db_from_csv.py data/flights_busy.csv data/crew_small.csv data/atss.db
 ```
 or
 ```
@@ -90,3 +90,14 @@ iterate through each row in `alloted`
             add an entry to the `crew_allot` table with the flight id
             add the hours_worked to `crew`
 Done.
+
+
+## Finding time slots for delay
+
+Params are `flight id` and current `runway_time`
+Iterate through each runway
+    Iterate through each flight after current `runway_time`,
+        If a slot is found, display it, ask for confirmation.
+        yes => break;
+        no slot found, switch runway. and check again.
+No runways are free, then say that the only option is to cancel.

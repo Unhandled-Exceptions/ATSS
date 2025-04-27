@@ -76,9 +76,19 @@ int get_int_input(const char *prompt, int *value) {
 
 void display_header(){
     clear_screen();
-    printf(" __  _\n\\ `/ |\n \\__`!\n / ,' `-.__________________\n'-'\\_____                LI`-\\\n   <____()-=O=O=O=O=O=[]====--)\n     `.___ ,-----,_______...-'\n          /    .'\n         /   .'\n        /  .'            \n        `-'");
-    printf("\n%s    ___  ________________\n   /   |/_  __/ ___/ ___/\n  / /| | / /  \\__ \\\\__ \\ \n / ___ |/ /  ___/ /__/ / \n/_/  |_/_/  /____/____/  \n\x1B[0m",LOGOCOLR);
-    printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
+    printf(
+        "\n\e[1m%s    ___  ________________    "          "        _ \n"
+        "   /   |/_  __/ ___/ ___/   "          "      -=\\`\\ \n"
+        "  / /| | / /  \\__ \\\\__ \\  "          "    |\\ ____\\_\\__ \n"
+        " / ___ |/ /  ___/ /__/ /  "          "  -=\\c`\"\"\"\"\"\"\" \"`) \n"
+        "/_/  |_/_/  /____/____/   "          "     `~~~~~/ /~~` \n"
+        "                            "          "     -==/ / \n"
+        "                            "          "       '-' \n\x1B[0m"
+        , LOGOCOLR); // Pass the LOGOCOLR variable
+
+        printf("\nCopyright (c) 2025  by R Uthaya Murthy, Varghese K James, Tarun S\n");
+
+
 }
 
 void pauseScreen() {
