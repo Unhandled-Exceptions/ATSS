@@ -36,9 +36,6 @@ CREATE TABLE IF NOT EXISTS alloted (
     FOREIGN KEY (flight_id) REFERENCES flights (flight_id) ON DELETE CASCADE -- Added ON DELETE CASCADE
 );
 
--- REMOVED the old 'crew_allot' table definition
-
--- NEW Crew Allotment table definition (as used in crew_alloter.c)
 CREATE TABLE IF NOT EXISTS crew_allotments (
   allotment_id INTEGER PRIMARY KEY AUTOINCREMENT,
   flight_id TEXT NOT NULL,
@@ -48,7 +45,7 @@ CREATE TABLE IF NOT EXISTS crew_allotments (
   FOREIGN KEY (crew_id) REFERENCES crew(crew_id) ON DELETE CASCADE
 );
 
--- Optional: Add indices for potentially faster lookups later
+
 CREATE INDEX IF NOT EXISTS idx_flights_runway_time ON flights(runway_time);
 CREATE INDEX IF NOT EXISTS idx_alloted_flight_id ON alloted(flight_id);
 CREATE INDEX IF NOT EXISTS idx_alloted_runway_time ON alloted(runway, allotted_time);

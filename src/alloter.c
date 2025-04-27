@@ -14,7 +14,9 @@ Somebody please make it look good and match with modern formatting.
 void view_allots(sqlite3 *db, char *err_msg)
 {
     // printf("Inside view allot fun\n");
+    clear_screen();
     char *query = "SELECT * FROM alloted ORDER BY allotted_time;";
+
     clear_screen();
     printf("=========================================\n");
     printf("            Flight Allotments            \n");
@@ -22,7 +24,9 @@ void view_allots(sqlite3 *db, char *err_msg)
     printf("-----------------------------------------\n");
     printf("%-6s %-12s %-8s %s\n","ID", "Flight ID", "Time", "Runway");
     printf("-----------------------------------------\n");
+
     int rc = sqlite3_exec(db, query, view_allots_cb, 0, &err_msg);
+    printf("-------------------------------------------------\n");
 
     if (rc != SQLITE_OK) {
 
@@ -214,6 +218,10 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
     clear_screen();
 
     // Declaration of variables
+    printf("=========================================\n");
+    printf("          Starting Flight Allotment       \n");
+    printf("=========================================\n\n");
+    printf("-------------------------------------------------\n");
     char delaypile[50][10];
     int delaycount = 0;
 
@@ -240,6 +248,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         AD prevAllot = get_last_alloted_flight(flights, 1, db, err_msg);
 
         int diff = timedifference(prevAllot.allotted_time, flights->flight[i].runway_time);
+        printf("\n------------------------------------------------------\n");
         printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
 
         if (diff < 15) {
