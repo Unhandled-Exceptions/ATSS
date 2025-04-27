@@ -53,8 +53,8 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
 {
     // printf("Inside view allot fun\n");
 
-    AD last_allot;
-    AD invalid_allot;
+    AD last_allot = {0}; // This thing must be initialised as 0.
+    AD invalid_allot = {0};
     invalid_allot.allot_id = -1;
 
     char *query_template = "SELECT * FROM alloted WHERE runway=%d ORDER BY allotted_time DESC LIMIT 1;";
@@ -72,6 +72,12 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
         return invalid_allot;
     }
 
+    // DEBUG TO FIX RUNWAY 3 BEING AVOIDED.
+    // if (runway == 3)
+    // {
+    //     printf("\e[1m R3 Special Case: %s\n\e[0m", last_allot.flight_id);
+    // }
+
     // Linear search through the flight array
     for (int i = 0; i < flights->size; i++) {
         if (strcmp(flights->flight[i].flight_id, last_allot.flight_id) == 0) {
@@ -81,7 +87,7 @@ AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg)
         }
     }
 
-    printf("There are no flights in this runway\n");
+    printf("  There are no flights in this runway\n");
     return invalid_allot;
 }
 
@@ -105,8 +111,6 @@ int get_last_alloted_flight_cb(void *la, int argc, char **argv, char **azColName
 
     return 0;
 }
-
-void remove_last_alloted_flight();
 
 /*
 Adds a flight to the allot table.
@@ -142,6 +146,34 @@ void add_allot(char *flight_id, char *alloted_time, int runway, sqlite3 *db, cha
     }
 }
 
+/*
+Removes the last instance of given flight ID.
+*/
+void remove_allot(char *flight_id, int runway, sqlite3 *db, char *err_msg)
+{
+    // ORDER BY ERROR IN SQLITE
+    // char *query_template = "DELETE FROM alloted WHERE runway=%d AND flight_id=%s ORDER BY allotted_time DESC LIMIT 1;";
+    char *query_template = "DELETE FROM alloted WHERE flight_id='%s';";
+    char *query = sqlite3_mprintf(query_template, flight_id);
+
+    if (query == NULL) {
+        printf("Memory allocation for the query failed :(\n");
+    }
+
+    int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK) {
+        printf("remove_allot(): SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_free(query);
+        return;
+    }
+    else {
+        printf("Removed flight %s!\n", flight_id);
+        return;
+    }
+}
+
 int timedifference(const char *time1, const char *time2)
 {
     if (time1 == NULL || time2 == NULL || strlen(time1) != 4 || strlen(time2) != 4) {
@@ -155,6 +187,7 @@ int timedifference(const char *time1, const char *time2)
 
     if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59 ||
         hour2 < 0 || hour2 > 23 || minute2 < 0 || minute2 > 59) {
+        printf("\tInvalid time format.\n");
         return -1; // Indicate invalid time format
     }
 
@@ -167,11 +200,9 @@ int timedifference(const char *time1, const char *time2)
 /*
 Allotment func - Implemented using algo given in README
 current code is very skeletony.
-Work on making `diff` proper and better logic.
 
 As of now, I'm making it so that each time this function is called
 it deletes the prexisting table
-
 */
 void allotment(FL *flights, sqlite3 *db, char *err_msg)
 {
@@ -205,12 +236,13 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("FID: %s\tPREV TIME: %s\tCUR TIME: %s\tDIFF: %d\n", flights->flight[i].flight_id, prevAllot.allotted_time, flights->flight[i].runway_time, diff);
 
         if (diff < 15) {
-            printf("Conflicting...\n");
+            printf("\e[33mConflicting...\e[0m\n");
             int resolved_flag = 0;
             for (int r = 2; r <= 3; r++) {
                 printf("  Changing runway to %d\n", r);
 
                 AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
+                // printf("  Last alloted flight in runway %d is %d\n", r, prevAllot.allot_id);
 
                 int diff;
                 // First time runway alloc
@@ -230,7 +262,31 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 }
             }
 
-            // Implement the priority switchup here.
+            // Priority switchup.
+            if (resolved_flag == 0) {
+                // Looping through runways once again with the intention to remove lower priority flights.
+                for (int r = 1; r <= 3; r++) {
+                    printf("  Changing runway to %d\n", r);
+
+                    AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
+                    // printf("  Last alloted flight in runway %d is %d\n", r, prevAllot.allot_id);
+
+                    int cur_priority = flights->flight[i].priority_level;
+                    int prev_priority = find_flight_by_id(prevAllot.flight_id, flights)->priority_level;
+                    if (cur_priority < prev_priority) {
+                        printf("\e[1;36m  Higher priority flight, putting flight %s in delay pile\n\e[0m", prevAllot.flight_id);
+                        remove_allot(prevAllot.flight_id, prevAllot.runway, db, err_msg);
+
+                        strcpy(delaypile[delaycount], prevAllot.flight_id);
+                        delaycount++;
+
+                        add_allot(flights->flight[i].flight_id, flights->flight[i].runway_time, r,
+                                  db, err_msg);
+                        resolved_flag = 1;
+                        break;
+                    }
+                }
+            }
 
             if (resolved_flag == 0) {
                 printf("Cannot find runway, moving to delay pile.\n");
