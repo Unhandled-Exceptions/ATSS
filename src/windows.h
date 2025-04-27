@@ -3,10 +3,15 @@
 
 #include <gtk/gtk.h>
 #include <sqlite3.h>
-
+#include "flights.h"
+#include "alloter.h"
+#include "crew_alloter.h"
+#include "crew.h"
+#include "utils.h"
 
 // Flight Information Window - Starts
 
+extern FL flights;
 // Flight Info (FI) Table Columns
 enum
 {
@@ -22,6 +27,7 @@ enum
   FI_NUM_COLS
 } ;
 
-GtkWidget *create_flights_info_window();
+GtkWidget *create_flights_info_window(sqlite3 *db);
+
 // Flights Information Window - Ends
 #endif

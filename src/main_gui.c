@@ -1,13 +1,10 @@
 /*
 In VSCode use:
 unset GTK_MODULES; 
-To compile:
-gcc `pkg-config --cflags gtk+-3.0` -o bin/atss-gui src/main_gui.c src/windows.c `pkg-config --libs gtk+-3.0`
-To run:
-./bin/atss-gui
 */
 
 #include <gtk/gtk.h>
+#include <sqlite3.h>
 #include "windows.h"
 #include "flights.h"
 #include "alloter.h"
@@ -18,14 +15,34 @@ To run:
 static GtkWidget* create_main_window(GtkApplication *app);
 static void create_main_view(GtkWidget *window);
 static void activate(GtkApplication *app, gpointer user_data);
+static void cleanup(GtkApplication *app, gpointer user_data);
 
+sqlite3 *the_db;
+FL flights;
+CL crew_list;
 
 int main(int argc, char *argv[]) {
     GtkApplication *app;
     int status;
 
+    char *err_msg = 0;
+
+
+    init_crew_list(&crew_list, INIT_CREW_SIZE);
+
+    const char *db_path = "data/atss.db"; // Hard Coding DB Path for now
+
+    int rc = sqlite3_open(db_path, &the_db);
+
+    if (rc != SQLITE_OK) {
+        g_error("Cannot open database: %s\n", sqlite3_errmsg(the_db));
+        sqlite3_close(the_db);
+        return 1;
+    }
+
     app = gtk_application_new("org.UnhandledExceptions.ATSS", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK(cleanup), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);
 
@@ -54,7 +71,7 @@ static void create_main_view(GtkWidget *window){
     gtk_box_pack_start (GTK_BOX(main_box), widget, FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (main_box), stack, TRUE, TRUE, 0);
 
-    GtkWidget *flights_info_window = create_flights_info_window();
+    GtkWidget *flights_info_window = create_flights_info_window(the_db);
     gtk_stack_add_named(GTK_STACK(stack), flights_info_window, "flight_info");
     gtk_container_child_set(GTK_CONTAINER(stack), flights_info_window, "title", "Flights Information", NULL);
     
@@ -85,4 +102,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = create_main_window(app);
     create_main_view(window);
     gtk_widget_show_all(window);
+}
+
+static void cleanup(GtkApplication *app, gpointer user_data) {
+    free_flight_list(&flights);
+    free_crew_list(&crew_list);
+    sqlite3_close(the_db);
+    g_print("Bye !\n");
 }

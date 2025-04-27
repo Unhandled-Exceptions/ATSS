@@ -18,16 +18,17 @@ char* format_time(const char* time_hhmm) {
 
 // Flights Information Window - Starts
 
-static GtkTreeModel *populate_flights_info_model (void){
+static GtkTreeModel *populate_flights_info_model (){
     GtkListStore *store = gtk_list_store_new(FI_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING);
 
     GtkTreeIter iter;
 
-    gtk_list_store_append(store, &iter);
-    gtk_list_store_set(store, &iter, FI_FLIGHT_ID, "FL001", FI_AIRLINE, "Air India", FI_ORIGIN, "MAA", FI_DESTINATION, "HYD", FI_DEPARTURE, format_time("0900"), FI_ARRIVAL, format_time("1100"), FI_AIRCRAFT_TYPE, "Boeing 747", FI_PRIORITY_LEVEL, 3, FI_RUNWAY_TIME, format_time("0900"), -1);
-
-    gtk_list_store_append(store, &iter);
-    gtk_list_store_set(store, &iter, FI_FLIGHT_ID, "FL002", FI_AIRLINE, "Air India", FI_ORIGIN, "BLR", FI_DESTINATION, "MAA", FI_DEPARTURE, format_time("0400"), FI_ARRIVAL, format_time("0700"), FI_AIRCRAFT_TYPE, "Boeing 747", FI_PRIORITY_LEVEL, 3, FI_RUNWAY_TIME, format_time("0700"), -1);
+    for (int i = 0; i < flights.size; i++){
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter, FI_FLIGHT_ID, flights.flight[i].flight_id, FI_AIRLINE, flights.flight[i].airline, FI_ORIGIN, flights.flight[i].origin, FI_DESTINATION, flights.flight[i].destination, FI_DEPARTURE, format_time(flights.flight[i].departure_time), FI_ARRIVAL, format_time(flights.flight[i].arrival_time), FI_AIRCRAFT_TYPE, flights.flight[i].aircraft_type, FI_PRIORITY_LEVEL, flights.flight[i].priority_level, FI_RUNWAY_TIME, format_time(flights.flight[i].runway_time), -1);
+    }
+    // gtk_list_store_append(store, &iter);
+    // gtk_list_store_set(store, &iter, FI_FLIGHT_ID, "FL002", FI_AIRLINE, "Air India", FI_ORIGIN, "BLR", FI_DESTINATION, "MAA", FI_DEPARTURE, format_time("0400"), FI_ARRIVAL, format_time("0700"), FI_AIRCRAFT_TYPE, "Boeing 747", FI_PRIORITY_LEVEL, 3, FI_RUNWAY_TIME, format_time("0700"), -1);
 
     return GTK_TREE_MODEL (store);
 }
@@ -51,7 +52,18 @@ static GtkWidget *create_flights_info_table (void){
     return table;
 }
 
-GtkWidget *create_flights_info_window(){
+GtkWidget *create_flights_info_window(sqlite3 *db){
+
+    char *err_msg = 0;
+    init_flight_list(&flights, INIT_FLIGHTS_SIZE);
+
+    if (load_flights_data(&flights, db, err_msg) != 0) {
+        g_error("Failed to load flights data from database\n");
+        sqlite3_close(db);
+        exit(0);
+    }
+
+
     GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
     
     int margin = 15;
