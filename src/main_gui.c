@@ -2,12 +2,18 @@
 In VSCode use:
 unset GTK_MODULES; 
 To compile:
-gcc `pkg-config --cflags gtk+-3.0` -o bin/atss-gui src/main_gui.c `pkg-config --libs gtk+-3.0`
+gcc `pkg-config --cflags gtk+-3.0` -o bin/atss-gui src/main_gui.c src/windows.c `pkg-config --libs gtk+-3.0`
 To run:
 ./bin/atss-gui
 */
 
 #include <gtk/gtk.h>
+#include "windows.h"
+#include "flights.h"
+#include "alloter.h"
+#include "crew_alloter.h"
+#include "crew.h"
+#include "utils.h"
 
 static GtkWidget* create_main_window(GtkApplication *app);
 static void create_main_view(GtkWidget *window);
@@ -35,10 +41,10 @@ static GtkWidget* create_main_window(GtkApplication *app) {
 }
 
 static void create_main_view(GtkWidget *window){
-    GtkWidget *main_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+    GtkWidget *main_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
     
     GtkWidget *sidebar = gtk_stack_sidebar_new ();
-    gtk_box_pack_start (GTK_BOX (main_box), sidebar, FALSE, TRUE, 0);    
+    gtk_box_pack_start (GTK_BOX (main_box), sidebar, FALSE, FALSE, 0);    
 
     GtkWidget *stack = gtk_stack_new ();
     gtk_stack_set_transition_type (GTK_STACK (stack), GTK_STACK_TRANSITION_TYPE_SLIDE_UP_DOWN);
@@ -48,9 +54,9 @@ static void create_main_view(GtkWidget *window){
     gtk_box_pack_start (GTK_BOX(main_box), widget, FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (main_box), stack, TRUE, TRUE, 0);
 
-    GtkWidget *label1 = gtk_label_new("Flight Information Here !!");
-    gtk_stack_add_named(GTK_STACK(stack), label1, "flight_info");
-    gtk_container_child_set(GTK_CONTAINER(stack), label1, "title", "Flights Information", NULL);
+    GtkWidget *flights_info_window = create_flights_info_window();
+    gtk_stack_add_named(GTK_STACK(stack), flights_info_window, "flight_info");
+    gtk_container_child_set(GTK_CONTAINER(stack), flights_info_window, "title", "Flights Information", NULL);
     
     GtkWidget *label2 = gtk_label_new("Crew Information Here !!");
     gtk_stack_add_named(GTK_STACK(stack), label2, "crew_info");
