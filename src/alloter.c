@@ -305,10 +305,30 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("Everything is properly alloted.\n");
     }
     else {
-        printf("Conflicting Flights\n");
+        printf("\e[33;1;4mConflicting Flights\e[0m\n");
+        printf("c to cancel, d to delay\n");
         for (int i = 0; i < delaycount; i++) {
-            printf("\t%s", delaypile[i]);
+            char op;
+            printf("%s: ", delaypile[i]);
+            fflush(stdin);
+            scanf("%c", &op);
+            if (op == 'c') {
+                printf("Flight Cancelled!\n");
+                fflush(stdout);
+            }
+            else if (op == 'd') {
+                printf("New Timing: ");
+                char newtime[5];
+                scanf(" %s", newtime);
+                printf("Flight delayed to %s\n", newtime);
+                fflush(stdout);
+            }
+            fflush(stdin);
         }
+        printf("Conflicts resolved!");
+        scanf("%c"); // Absorber of \n;
+        fflush(stdout);
+        fflush(stdin);
     }
 
     pauseScreen();
