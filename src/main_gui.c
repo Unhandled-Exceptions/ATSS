@@ -9,8 +9,21 @@ To run:
 
 #include <gtk/gtk.h>
 
-static void print_hello(GtkWidget *widget, gpointer data) {
-    g_print("Hello World\n");
+static GtkWidget* create_main_window(GtkApplication *app);
+static void create_main_view(GtkWidget *window);
+static void activate(GtkApplication *app, gpointer user_data);
+
+
+int main(int argc, char *argv[]) {
+    GtkApplication *app;
+    int status;
+
+    app = gtk_application_new("org.UnhandledExceptions.ATSS", G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
+
+    return status;
 }
 
 static GtkWidget* create_main_window(GtkApplication *app) {
@@ -20,7 +33,8 @@ static GtkWidget* create_main_window(GtkApplication *app) {
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER); // Center the window
     return window;
 }
-void create_main_view(GtkWidget *window){
+
+static void create_main_view(GtkWidget *window){
     GtkWidget *main_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
     
     GtkWidget *sidebar = gtk_stack_sidebar_new ();
@@ -65,16 +79,4 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = create_main_window(app);
     create_main_view(window);
     gtk_widget_show_all(window);
-}
-
-int main(int argc, char *argv[]) {
-    GtkApplication *app;
-    int status;
-
-    app = gtk_application_new("org.UnhandledExceptions.ATSS", G_APPLICATION_DEFAULT_FLAGS);
-    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-    status = g_application_run(G_APPLICATION(app), argc, argv);
-    g_object_unref(app);
-
-    return status;
 }
