@@ -3,7 +3,6 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
 #include "flights.h"
 #include "alloter.h"
 #include "crew_alloter.h"
