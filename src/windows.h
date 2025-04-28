@@ -68,3 +68,23 @@ enum
 GtkWidget *create_crew_info_window(sqlite3 *db);
 // Crew Information Window - Ends
 #endif
+
+// Flight Allotment Window - Starts
+enum
+{
+  FA_ID = 0,
+  FA_FLIGHT_ID,
+  FA_TIME,
+  FA_RUNWAY,
+  FA_NUM_COLS
+} ;
+
+struct allot_cb_pack {
+  GtkListStore **store;
+  GtkTreeIter *iter;
+  int i;
+};
+
+
+GtkWidget *create_allot_window(sqlite3 *db);
+// Flight Allotment Window - Ends

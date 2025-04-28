@@ -588,3 +588,112 @@ GtkWidget *create_crew_info_window(sqlite3 *db){
     return win_box;
 }
 // Crew Information Window - Ends
+
+
+// Flight Allotment Window - Starts
+
+static int cb_populate_alloted_table_model(void *imusing, int argc, char **argv, char **azColName)
+{
+    struct allot_cb_pack *alcb = (struct allot_cb_pack *) imusing;
+
+    // We'll put this in the callback
+    char *formatted_runway = g_strdup(format_time(argv[2]));
+    gtk_list_store_append(*alcb->store, alcb->iter);
+    gtk_list_store_set(*alcb->store, alcb->iter, FA_ID, argv[0], FA_FLIGHT_ID, argv[1], FA_TIME, formatted_runway, FA_RUNWAY, argv[3], -1);
+    // printf("%-6s %-12s %-8s %s\n",
+    //        argv[0] ? argv[0] : "NULL",
+    //        argv[1] ? argv[1] : "NULL",
+    //        argv[2] ? argv[2] : "NULL",
+    //        argv[3] ? argv[3] : "NULL");
+    return 0;
+}
+
+static GtkTreeModel *populate_alloted_table_model (sqlite3 *db) {
+    GtkListStore *store = gtk_list_store_new(FA_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeIter iter;
+    struct allot_cb_pack alcb = {&store, &iter};
+
+
+    // SQL Section instead of a for loop we have cb function.
+    char *err_msg = 0;
+    char *query = "SELECT * FROM alloted ORDER BY allotted_time;";    
+    int rc = sqlite3_exec(db, query, cb_populate_alloted_table_model, &alcb, &err_msg);
+
+    if (rc != 0) {
+        g_error("Failed to load alloted data from database\n");
+        sqlite3_close(db);
+        exit(1);
+    }
+    // SQL part over.
+    return GTK_TREE_MODEL (store);
+}
+
+// This calls populate_alloted_table_model()
+static GtkWidget *create_alloted_table_widget (sqlite3 *db){
+    GtkWidget *table = gtk_tree_view_new();
+    GtkCellRenderer *renderer;
+
+    char *cols[] = {"ID", "Flight ID", "Time", "Runway"};
+
+    for (int i = 0; i < FA_NUM_COLS; i++){
+        renderer = gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW (table), -1, cols[i], renderer,"text", i, NULL);
+    }
+
+    GtkTreeModel *model = populate_alloted_table_model(db);
+    gtk_tree_view_set_model (GTK_TREE_VIEW (table), model);
+
+    g_object_unref (model);
+
+    return table;
+}
+
+// This calls create_alloted_table_widget()
+GtkWidget *create_allot_window(sqlite3 *db) {
+    
+    GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
+    
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *frame = gtk_frame_new ("Actions");
+
+    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
+
+    gtk_container_add (GTK_CONTAINER (frame), bbox);
+    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10); 
+    
+    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
+    gtk_box_set_spacing (GTK_BOX (bbox), 10);
+
+    GtkWidget *allot_flights_btn = gtk_button_new_with_label("Add Flight");
+    GtkWidget *cancel_flight_btn = gtk_button_new_with_label("Cancel Flight");
+
+    gtk_container_add (GTK_CONTAINER (bbox), allot_flights_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), cancel_flight_btn);
+
+    // The Table !!
+
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN); // Optional: adds a nice border
+
+    // Make a function to make a widget which makes a table with all the values.
+    // Something like this.
+    GtkWidget *table = create_alloted_table_widget(db);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
+
+    return win_box;
+}
+
+// Flight Allotment Window - Ends
+
+
+
+
