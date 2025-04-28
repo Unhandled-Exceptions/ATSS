@@ -25,6 +25,10 @@ typedef struct flights_list{
     size_t allocated;
 } FL;
 
+extern const char *all_airports[];
+extern const char *all_airlines[];
+extern const char *all_aircraft_types[];
+
 void init_flight_list(FL *flights, size_t initial_size);
 void addto_flight_list(FD *flight_data, FL *flights);
 void free_flight_list(FL *flights);

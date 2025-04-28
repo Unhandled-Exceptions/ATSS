@@ -4,6 +4,10 @@
 #include <string.h>
 #include "flights.h"
 
+const char *all_airports[] = {"DEL", "BOM", "MAA", "BLR", "HYD", "CCU", "AMD", "COK", "GOI", "PNQ", "JFK", "LHR", "DXB", "SIN", "SYD", "CDG", "HKG", "LAX", "FRA", "NRT", NULL};
+const char *all_airlines[] = {"Air India", "IndiGo", "Vistara", "SpiceJet", "Emirates", "Lufthansa", "British Airways", NULL};
+const char *all_aircraft_types[] = {"Boeing 737", "Airbus A320", "Boeing 777", "Airbus A380", "Embraer E190", NULL};
+
 void init_flight_list(FL *flights, size_t initial_size){
     flights->flight = (FD *) malloc(initial_size * sizeof(FD));
     if (flights->flight == NULL) {
