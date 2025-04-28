@@ -22,7 +22,7 @@ void view_allots(sqlite3 *db, char *err_msg)
     printf("            Flight Allotments            \n");
     printf("=========================================\n\n");
     printf("-----------------------------------------\n");
-    printf("%-6s %-12s %-8s %s\n","ID", "Flight ID", "Time", "Runway");
+    printf("%-6s %-12s %-8s %s\n", "ID", "Flight ID", "Time", "Runway");
     printf("-----------------------------------------\n");
 
     int rc = sqlite3_exec(db, query, view_allots_cb, 0, &err_msg);
@@ -183,25 +183,28 @@ void remove_allot(char *flight_id, int runway, sqlite3 *db, char *err_msg)
     }
 }
 
-int timedifference(const char *time1, const char *time2)
+int time_in_minutes(const char *time)
 {
-    if (time1 == NULL || time2 == NULL || strlen(time1) != 4 || strlen(time2) != 4) {
+    if (time == NULL || strlen(time) != 4) {
         return -1; // Indicate invalid input
     }
+    int hour1 = (time[0] - '0') * 10 + (time[1] - '0');
+    int minute1 = (time[2] - '0') * 10 + (time[3] - '0');
 
-    int hour1 = (time1[0] - '0') * 10 + (time1[1] - '0');
-    int minute1 = (time1[2] - '0') * 10 + (time1[3] - '0');
-    int hour2 = (time2[0] - '0') * 10 + (time2[1] - '0');
-    int minute2 = (time2[2] - '0') * 10 + (time2[3] - '0');
-
-    if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59 ||
-        hour2 < 0 || hour2 > 23 || minute2 < 0 || minute2 > 59) {
+    if (hour1 < 0 || hour1 > 23 || minute1 < 0 || minute1 > 59) {
         printf("\tInvalid time format.\n");
         return -1; // Indicate invalid time format
     }
 
     int totalMinutes1 = hour1 * 60 + minute1;
-    int totalMinutes2 = hour2 * 60 + minute2;
+
+    return totalMinutes1;
+}
+
+int timedifference(const char *time1, const char *time2)
+{
+    int totalMinutes1 = time_in_minutes(time1);
+    int totalMinutes2 = time_in_minutes(time2);
 
     return abs(totalMinutes1 - totalMinutes2);
 }
@@ -229,9 +232,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
     char *query = "DELETE FROM alloted;";
     // For some reason resetting the autoincrement counter results in a segfault.
     // char *query = "DELETE FROM alloted; DELETE FROM SQLITE_SEQUENCE WHERE name='alloted';";
-    printf("gonna executin!\n");
     int rc = sqlite3_exec(db, query, 0, 0, &err_msg);
-    printf("finish\n");
     if (rc != SQLITE_OK) {
         printf("SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -254,7 +255,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         if (diff < 15) {
             printf("\e[33mConflicting...\e[0m\n");
             int resolved_flag = 0;
-            for (int r = 2; r <= 3; r++) {
+            for (int r = 2; r <= RUNWAYCOUNT; r++) {
                 printf("  Changing runway to %d\n", r);
 
                 AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
@@ -281,7 +282,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
             // Priority switchup.
             if (resolved_flag == 0) {
                 // Looping through runways once again with the intention to remove lower priority flights.
-                for (int r = 1; r <= 3; r++) {
+                for (int r = 1; r <= RUNWAYCOUNT; r++) {
                     printf("  Changing runway to %d\n", r);
 
                     AD prevAllot = get_last_alloted_flight(flights, r, db, err_msg);
@@ -336,7 +337,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
                 printf("New Timing: ");
                 char newtime[5];
                 scanf(" %s", newtime);
-                add_allot(flights->flight[i].flight_id, newtime,1, db, err_msg);
+                add_allot(flights->flight[i].flight_id, newtime, 1, db, err_msg);
                 printf("Flight delayed to %s\n", newtime);
                 fflush(stdout);
             }
@@ -349,4 +350,69 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
     }
 
     pauseScreen();
+}
+
+void utilization_report(FL *flights, sqlite3 *db, char *err_msg)
+{
+    clear_screen();
+    printf("=========================================\n");
+    printf("            Runway Utilization           \n");
+    printf("=========================================\n\n");
+
+    for (int r = 1; r <= RUNWAYCOUNT; r++) {
+        // int util96[96]; // 24 hrs * 4 quarters of 15 mins, for data viz
+        int util_time = 0;
+        struct utildata utilvars;
+
+        utilvars.util96 = (int *)calloc(96, sizeof(int));
+        utilvars.util_time = &util_time;
+
+        // [================================================================================================]
+        char *query_template = "SELECT * FROM alloted WHERE runway=%d ORDER BY allotted_time;";
+        char *query = sqlite3_mprintf(query_template, r);
+
+        int rc = sqlite3_exec(db, query, utilization_report_cb, &utilvars, &err_msg);
+
+        int util_perc = (util_time * 100) / 1440;
+        printf("Runway #%d is used for %d minutes -> %d%% Usage.\n", r, util_time, util_perc);
+        printf("[");
+        for (int i = 0; i < 96; i++) {
+            if (utilvars.util96[i] == 1) {
+                printf("\e[32m█\e[0m");
+            } else {
+                printf("\e[2m■\e[0m");
+            }
+        }
+        printf("]\n\n");
+        free(utilvars.util96);
+    }
+
+    pauseScreen();
+}
+
+int utilization_report_cb(void *utilvars, int argc, char **argv, char **azColName)
+{
+    struct utildata *uv = (struct utildata *)utilvars;
+
+    *uv->util_time += 15;
+    // printf("utilzd time is %d\n", *uv->util_time);
+
+    char alot_time[5];
+    strcpy(alot_time, argv[2]);
+
+    int s_inteval = 0;
+    int end_interval = 14;
+
+    int flight_time = time_in_minutes(alot_time);
+
+    for (int i = 0; i < 96; i++) {
+        if (flight_time > s_inteval && flight_time < end_interval) {
+            uv->util96[i] = 1;
+            // printf("time is %s (ie %d mins)\n", alot_time, flight_time);
+            return 0;
+        }
+        s_inteval += 15;
+        end_interval += 15;
+    }
+    return 0;
 }
