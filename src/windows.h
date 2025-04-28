@@ -15,6 +15,17 @@ typedef struct {
   sqlite3 *db;
   GtkWidget *table;
 } TablewithDB;
+
+typedef struct {
+  GtkWidget *entry_id;
+  GtkWidget *combo_airline;
+  GtkWidget *combo_origin;
+  GtkWidget *combo_destination;
+  GtkWidget *entry_departure;
+  GtkWidget *entry_arrival;
+  GtkWidget *combo_aircraft_type;
+  GtkWidget *combo_priority_level;
+} FetchCallbackData;
 // Helpful Utils End
 
 // Flight Information Window - Starts

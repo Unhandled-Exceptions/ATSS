@@ -14,9 +14,32 @@ char* format_time(const char* time_hhmm) {
 
     return formatted_time;
 }
-// Helper Functions - Ends
 
-// Flights Information Window - Starts
+static gboolean set_combo_box_text_active_by_text(GtkComboBoxText *combo, const char *text_to_find) {
+    
+    if (!text_to_find) return FALSE;
+
+    GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(combo));
+    GtkTreeIter iter;
+    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+    int index = 0;
+
+    while (valid) {
+        char *current_text = NULL;
+        gtk_tree_model_get(model, &iter, 0, &current_text, -1);
+
+        if (current_text && strcmp(current_text, text_to_find) == 0) {
+            gtk_combo_box_set_active(GTK_COMBO_BOX(combo), index);
+            g_free(current_text);
+            return TRUE;
+        }
+
+        g_free(current_text);
+        valid = gtk_tree_model_iter_next(model, &iter);
+        index++;
+    }
+    return FALSE;
+}
 
 static GtkTreeModel *populate_flights_info_model (){
     GtkListStore *store = gtk_list_store_new(FI_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING);
@@ -188,6 +211,188 @@ static void add_flight(GtkButton *button, gpointer user_data){
     gtk_widget_destroy(dialog);
 }
 
+static void fetch_flight_details_cb(GtkButton *button, gpointer user_data) {
+    FetchCallbackData *widgets = (FetchCallbackData *)user_data; // Cast user_data
+
+    const char *flight_id = gtk_entry_get_text(GTK_ENTRY(widgets->entry_id));
+
+    if (g_utf8_strlen(flight_id, -1) == 0) {
+
+         g_warning("Please enter a Flight ID first to fetch details.");
+        return;
+    }
+
+    FD* found_flight = find_flight_by_id(flight_id, &flights);
+
+    if (found_flight) {
+        set_combo_box_text_active_by_text(GTK_COMBO_BOX_TEXT(widgets->combo_airline), found_flight->airline);
+        set_combo_box_text_active_by_text(GTK_COMBO_BOX_TEXT(widgets->combo_origin), found_flight->origin);
+        set_combo_box_text_active_by_text(GTK_COMBO_BOX_TEXT(widgets->combo_destination), found_flight->destination);
+        gtk_entry_set_text(GTK_ENTRY(widgets->entry_departure), found_flight->departure_time);
+        gtk_entry_set_text(GTK_ENTRY(widgets->entry_arrival), found_flight->arrival_time);
+        set_combo_box_text_active_by_text(GTK_COMBO_BOX_TEXT(widgets->combo_aircraft_type), found_flight->aircraft_type);
+
+        char priority_id_str[3];
+        g_snprintf(priority_id_str, sizeof(priority_id_str), "%d", found_flight->priority_level);
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(widgets->combo_priority_level), priority_id_str);
+
+    } else {
+        g_warning("Flight ID '%s' not found.", flight_id);
+    }
+}
+
+static void update_flight(GtkButton *button, gpointer user_data){
+    int i=0;
+    TablewithDB *afd = (TablewithDB *)user_data;
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    // Create the dialog
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Update Flight Details",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Update", GTK_RESPONSE_OK,
+                                                     NULL);
+
+    gtk_widget_set_size_request(dialog, 550, 350);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0);
+
+    GtkWidget *id_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *label_id = gtk_label_new("Flight ID:");
+    GtkWidget *entry_id = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_id), "Enter ID and Fetch");
+    GtkWidget *fetch_button = gtk_button_new_with_label("Fetch Details");
+    gtk_widget_set_hexpand(entry_id, TRUE);
+    gtk_box_pack_start(GTK_BOX(id_hbox), label_id, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(id_hbox), entry_id, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(id_hbox), fetch_button, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), id_hbox, FALSE, FALSE, 5);
+
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+    gtk_box_pack_start(GTK_BOX(vbox), grid, TRUE, TRUE, 0);
+
+    GtkWidget *label_airline = gtk_label_new("Airline:");
+    GtkWidget *combo_airline = gtk_combo_box_text_new();
+    for (i=0; all_airlines[i] != NULL; i++) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_airline), all_airlines[i]);
+    gtk_widget_set_hexpand(combo_airline, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_airline, 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), combo_airline, 1, 0, 1, 1);
+
+    GtkWidget *label_origin = gtk_label_new("Origin:");
+    GtkWidget *combo_origin = gtk_combo_box_text_new();
+    for (i=0; all_airports[i] != NULL; i++) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_origin), all_airports[i]);
+    gtk_widget_set_hexpand(combo_origin, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_origin, 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), combo_origin, 1, 1, 1, 1);
+
+    GtkWidget *label_destination = gtk_label_new("Destination:");
+    GtkWidget *combo_destination = gtk_combo_box_text_new(); 
+    for (i=0; all_airports[i] != NULL; i++) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_destination), all_airports[i]);
+    gtk_widget_set_hexpand(combo_destination, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_destination, 0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), combo_destination, 1, 2, 1, 1);
+
+    GtkWidget *label_departure = gtk_label_new("Departure:");
+    GtkWidget *entry_departure = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_departure), "e.g., 1430");
+    gtk_entry_set_max_length(GTK_ENTRY(entry_departure), 4);
+    gtk_widget_set_hexpand(entry_departure, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_departure, 0, 3, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), entry_departure, 1, 3, 1, 1);
+
+    GtkWidget *label_arrival = gtk_label_new("Arrival:");
+    GtkWidget *entry_arrival = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_arrival), "e.g., 1830");
+    gtk_entry_set_max_length(GTK_ENTRY(entry_arrival), 4);
+    gtk_widget_set_hexpand(entry_arrival, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_arrival, 0, 4, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), entry_arrival, 1, 4, 1, 1);
+
+    GtkWidget *label_aircraft_type = gtk_label_new("Aircraft Type:");
+    GtkWidget *combo_aircraft_type = gtk_combo_box_text_new(); 
+    for (i=0; all_aircraft_types[i] != NULL; i++) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_aircraft_type), all_aircraft_types[i]);
+    gtk_widget_set_hexpand(combo_aircraft_type, TRUE);
+    gtk_grid_attach(GTK_GRID(grid), label_aircraft_type, 0, 5, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), combo_aircraft_type, 1, 5, 1, 1);
+
+    GtkWidget *label_priority_level = gtk_label_new("Priority Level:");
+    GtkWidget *combo_priority_level = gtk_combo_box_text_new();
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "1", "1 - Emergency");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "2", "2 - Domestic");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "3", "3 - International");
+    gtk_grid_attach(GTK_GRID(grid), label_priority_level, 0, 6, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), combo_priority_level, 1, 6, 1, 1);
+
+    FetchCallbackData *fetch_data = g_malloc(sizeof(FetchCallbackData));
+    fetch_data->entry_id = entry_id; 
+    fetch_data->combo_airline = combo_airline;
+    fetch_data->combo_origin = combo_origin;
+    fetch_data->combo_destination = combo_destination;
+    fetch_data->entry_departure = entry_departure;
+    fetch_data->entry_arrival = entry_arrival;
+    fetch_data->combo_aircraft_type = combo_aircraft_type;
+    fetch_data->combo_priority_level = combo_priority_level;
+
+    g_signal_connect(fetch_button, "clicked", G_CALLBACK(fetch_flight_details_cb), fetch_data);
+
+    g_object_set_data_full(G_OBJECT(dialog), "fetch_data", fetch_data, g_free);
+
+    gtk_widget_show_all(dialog);
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *id_str = gtk_entry_get_text(GTK_ENTRY(entry_id));
+        char *airline_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo_airline));
+        char *origin_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo_origin));
+        char *destination_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo_destination));
+        const char *departure_str = gtk_entry_get_text(GTK_ENTRY(entry_departure));
+        const char *arrival_str = gtk_entry_get_text(GTK_ENTRY(entry_arrival));
+        char *aircraft_type_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo_aircraft_type));
+        const char *priority_id = gtk_combo_box_get_active_id(GTK_COMBO_BOX(combo_priority_level));
+        int priority_level_int = priority_id ? atoi(priority_id) : 0;
+
+        if (strlen(id_str) == 0 || !airline_str || !origin_str || !destination_str || strlen(departure_str) != 4 || strlen(arrival_str) != 4 || !aircraft_type_str || priority_level_int == 0) {
+            g_warning("Update failed: Please ensure all fields are filled correctly (Times: HHMM).");
+            gtk_widget_destroy(dialog);
+            return;
+        }
+
+
+        FD updated_flight;
+        g_strlcpy(updated_flight.flight_id, id_str, sizeof(updated_flight.flight_id));
+        g_strlcpy(updated_flight.airline, airline_str, sizeof(updated_flight.airline));
+        g_strlcpy(updated_flight.origin, origin_str, sizeof(updated_flight.origin));
+        g_strlcpy(updated_flight.destination, destination_str, sizeof(updated_flight.destination));
+        g_strlcpy(updated_flight.departure_time, departure_str, sizeof(updated_flight.departure_time));
+        g_strlcpy(updated_flight.arrival_time, arrival_str, sizeof(updated_flight.arrival_time));
+        g_strlcpy(updated_flight.aircraft_type, aircraft_type_str, sizeof(updated_flight.aircraft_type));
+        updated_flight.priority_level = priority_level_int;
+
+        sqlite3 *db = afd->db;
+        GtkWidget *table = afd->table;
+        char *err_msg = 0;
+
+        if (update_flight_data(&updated_flight, &flights, db, err_msg) != 0){
+            g_warning("Error updating flight in database: %s", err_msg ? err_msg : "Unknown error");
+            sqlite3_free(err_msg);
+        } else {
+            g_print("Flight updated successfully!\n");
+            GtkTreeModel *new_model = populate_flights_info_model();
+            gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+            g_object_unref(new_model);
+        }
+
+    
+    gtk_widget_destroy(dialog);
+    }
+}
 GtkWidget *create_flights_info_window(sqlite3 *db){
 
     char *err_msg = 0;
@@ -241,6 +446,7 @@ GtkWidget *create_flights_info_window(sqlite3 *db){
     afd->table = table;
 
     g_signal_connect (add_flight_btn, "clicked", G_CALLBACK (add_flight), afd);
+    g_signal_connect (update_flight_btn, "clicked", G_CALLBACK (update_flight), afd);
 
     gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
 
