@@ -121,9 +121,7 @@ int get_last_alloted_flight_cb(void *la, int argc, char **argv, char **azColName
     return 0;
 }
 
-/*
-Adds a flight to the allot table.
-
+/*Adds a flight to the allot table.
 TODO:
 Use
 pragma foreign_keys = on
@@ -209,17 +207,12 @@ int timedifference(const char *time1, const char *time2)
     return abs(totalMinutes1 - totalMinutes2);
 }
 
-/*
-Allotment func - Implemented using algo given in README
-current code is very skeletony.
-
+/* Allotment func - Implemented using algo given in README
 As of now, I'm making it so that each time this function is called
 it deletes the prexisting table
 */
-void allotment(FL *flights, sqlite3 *db, char *err_msg)
+struct delaydata allotment(FL *flights, sqlite3 *db, char *err_msg)
 {
-    clear_screen();
-
     // Declaration of variables
     printf("=========================================\n");
     printf("          Starting Flight Allotment       \n");
@@ -237,7 +230,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
         sqlite3_free(query);
-        return;
+        return (struct delaydata){0};
     }
 
     // First one needs no check. To runway 1
@@ -318,6 +311,26 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         }
     }
 
+    // returning delayed data
+    struct delaydata rtrndata;
+    rtrndata.delaycount = delaycount;
+
+    // linearly copying everything
+    for (int i = 0; i < delaycount; i++) {
+        strcpy(rtrndata.delaypile[i], delaypile[i]);
+    }
+
+    return rtrndata;
+}
+
+void tui_allotment(FL *flights, sqlite3 *db, char *err_msg)
+{
+    clear_screen();
+
+    struct delaydata delayd = allotment(flights, db, err_msg);
+
+    int delaycount = delayd.delaycount;
+
     if (delaycount == 0) {
         printf("Everything is properly alloted.\n");
     }
@@ -326,7 +339,7 @@ void allotment(FL *flights, sqlite3 *db, char *err_msg)
         printf("c to cancel, d to delay\n");
         for (int i = 0; i < delaycount; i++) {
             char op;
-            printf("%s: ", delaypile[i]);
+            printf("%s: ", delayd.delaypile[i]);
             fflush(stdin);
             scanf("%c", &op);
             if (op == 'c') {
@@ -379,7 +392,8 @@ void utilization_report(FL *flights, sqlite3 *db, char *err_msg)
         for (int i = 0; i < 96; i++) {
             if (utilvars.util96[i] == 1) {
                 printf("\e[32m█\e[0m");
-            } else {
+            }
+            else {
                 printf("\e[2m■\e[0m");
             }
         }

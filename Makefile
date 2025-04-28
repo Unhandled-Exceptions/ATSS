@@ -1,4 +1,4 @@
-CC = gcc -Wall
+CC = gcc
 CFLAGS = -I lib/
 LDFLAGS = -lpthread -ldl
 

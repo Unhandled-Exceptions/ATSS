@@ -21,12 +21,18 @@ struct utildata {
     int *util_time;
 };
 
+struct delaydata {
+    char delaypile[50][10];
+    int delaycount;
+};
+
 #define RUNWAYCOUNT 3
 
 void view_allots(sqlite3 *db, char *err_msg);
 int view_allots_cb(void *NotUsed, int argc, char **argv, char **azColName);
 
-void allotment(FL *flights, sqlite3 *db, char *err_msg);
+struct delaydata allotment(FL *flights, sqlite3 *db, char *err_msg);
+void tui_allotment(FL *flights, sqlite3 *db, char *err_msg);
 void add_allot(char *flight_id, char *alloted_time, int runway, sqlite3 *db, char *err_msg);
 void remove_allot(char *flight_id, int runway, sqlite3 *db, char *err_msg);
 

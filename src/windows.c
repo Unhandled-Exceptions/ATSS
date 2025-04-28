@@ -628,6 +628,25 @@ static GtkTreeModel *populate_alloted_table_model (sqlite3 *db) {
     return GTK_TREE_MODEL (store);
 }
 
+static void allot_flights(GtkButton *button, gpointer user_data) {
+    // Unpacking the variabls
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table;
+
+    char err = 0;
+    printf("allot_flights db pointer:  %p\n", (void*)the_db );
+    fflush(stdout);
+    allotment(&flights, the_db, &err);
+
+    // Updating the treeview.
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+    g_object_unref(new_model);
+
+}
+
+
 // This calls populate_alloted_table_model()
 static GtkWidget *create_alloted_table_widget (sqlite3 *db){
     GtkWidget *table = gtk_tree_view_new();
@@ -670,22 +689,31 @@ GtkWidget *create_allot_window(sqlite3 *db) {
     gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing (GTK_BOX (bbox), 10);
 
-    GtkWidget *allot_flights_btn = gtk_button_new_with_label("Add Flight");
+    GtkWidget *allot_flights_btn = gtk_button_new_with_label("Allot flights");
     GtkWidget *cancel_flight_btn = gtk_button_new_with_label("Cancel Flight");
 
     gtk_container_add (GTK_CONTAINER (bbox), allot_flights_btn);
     gtk_container_add (GTK_CONTAINER (bbox), cancel_flight_btn);
 
-    // The Table !!
-
+    // The Alloted table
     GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN); // Optional: adds a nice border
 
-    // Make a function to make a widget which makes a table with all the values.
-    // Something like this.
     GtkWidget *table = create_alloted_table_widget(db);
     gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    // Binding functions to buttons
+    printf("create window db pointer:  %p\n", (void*)db );
+    fflush(stdout);
+
+    TablewithDB *afd = g_malloc(sizeof(TablewithDB));
+    afd->db = db;
+    afd->table = table;
+
+    g_signal_connect (allot_flights_btn, "clicked", G_CALLBACK (allot_flights), afd);
+    // g_signal_connect (update_flight_btn, "clicked", G_CALLBACK (update_flight), afd);
+
 
     gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
 
