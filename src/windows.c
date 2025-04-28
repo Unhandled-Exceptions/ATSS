@@ -319,8 +319,8 @@ static void update_flight(GtkButton *button, gpointer user_data){
     GtkWidget *label_priority_level = gtk_label_new("Priority Level:");
     GtkWidget *combo_priority_level = gtk_combo_box_text_new();
     gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "1", "1 - Emergency");
-    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "2", "2 - Domestic");
-    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "3", "3 - International");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "2", "2 - International");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_priority_level), "3", "3 - Domestic");
     gtk_grid_attach(GTK_GRID(grid), label_priority_level, 0, 6, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), combo_priority_level, 1, 6, 1, 1);
 
