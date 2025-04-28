@@ -53,8 +53,6 @@ static GtkTreeModel *populate_flights_info_model (){
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter, FI_FLIGHT_ID, flights.flight[i].flight_id, FI_AIRLINE, flights.flight[i].airline, FI_ORIGIN, flights.flight[i].origin, FI_DESTINATION, flights.flight[i].destination, FI_DEPARTURE, formatted_departure, FI_ARRIVAL, formatted_arrival, FI_AIRCRAFT_TYPE, flights.flight[i].aircraft_type, FI_PRIORITY_LEVEL, flights.flight[i].priority_level, FI_RUNWAY_TIME, formatted_runway, -1);
     }
-    // gtk_list_store_append(store, &iter);
-    // gtk_list_store_set(store, &iter, FI_FLIGHT_ID, "FL002", FI_AIRLINE, "Air India", FI_ORIGIN, "BLR", FI_DESTINATION, "MAA", FI_DEPARTURE, format_time("0400"), FI_ARRIVAL, format_time("0700"), FI_AIRCRAFT_TYPE, "Boeing 747", FI_PRIORITY_LEVEL, 3, FI_RUNWAY_TIME, format_time("0700"), -1);
 
     return GTK_TREE_MODEL (store);
 }
@@ -89,9 +87,6 @@ static void add_flight(GtkButton *button, gpointer user_data){
     GtkWidget *hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_container_set_border_width (GTK_CONTAINER (hbox), 8);
     gtk_box_pack_start (GTK_BOX (content_area), hbox, FALSE, FALSE, 0);
-  
-    GtkWidget*image = gtk_image_new_from_icon_name ("emblem-new", GTK_ICON_SIZE_DIALOG);
-    gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
     GtkWidget *grid = gtk_grid_new ();
     gtk_grid_set_row_spacing (GTK_GRID (grid), 4);
@@ -212,7 +207,7 @@ static void add_flight(GtkButton *button, gpointer user_data){
 }
 
 static void fetch_flight_details_cb(GtkButton *button, gpointer user_data) {
-    FetchCallbackData *widgets = (FetchCallbackData *)user_data; // Cast user_data
+    FetchCallbackData *widgets = (FetchCallbackData *)user_data;
 
     const char *flight_id = gtk_entry_get_text(GTK_ENTRY(widgets->entry_id));
 
@@ -246,7 +241,6 @@ static void update_flight(GtkButton *button, gpointer user_data){
     TablewithDB *afd = (TablewithDB *)user_data;
     GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
 
-    // Create the dialog
     GtkWidget *dialog = gtk_dialog_new_with_buttons("Update Flight Details",
                                                      GTK_WINDOW(parent_window),
                                                      GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -579,25 +573,6 @@ GtkWidget *create_crew_info_window(sqlite3 *db){
     gtk_widget_set_margin_end(win_box, margin);
     gtk_widget_set_margin_top(win_box, margin);
     gtk_widget_set_margin_bottom(win_box, margin);
-
-    GtkWidget *frame = gtk_frame_new ("Actions");
-
-    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
-    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
-
-    gtk_container_add (GTK_CONTAINER (frame), bbox);
-    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10); 
-    
-    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
-    gtk_box_set_spacing (GTK_BOX (bbox), 10);
-
-    GtkWidget *add_crew_btn = gtk_button_new_with_label("Add Crew");
-    GtkWidget *update_crew_btn = gtk_button_new_with_label("Update Crew");
-    GtkWidget *delete_crew_btn = gtk_button_new_with_label("Delete Crew");
-    
-    gtk_container_add (GTK_CONTAINER (bbox), add_crew_btn);
-    gtk_container_add (GTK_CONTAINER (bbox), update_crew_btn);
-    gtk_container_add (GTK_CONTAINER (bbox), delete_crew_btn);
 
     // The Table !!
 
