@@ -383,9 +383,8 @@ static void update_flight(GtkButton *button, gpointer user_data){
             g_object_unref(new_model);
         }
 
-    
-    gtk_widget_destroy(dialog);
     }
+    gtk_widget_destroy(dialog);
 }
 
 static void delete_flight_cb(GtkButton *button, gpointer user_data) {
