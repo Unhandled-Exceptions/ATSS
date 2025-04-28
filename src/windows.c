@@ -393,6 +393,77 @@ static void update_flight(GtkButton *button, gpointer user_data){
     gtk_widget_destroy(dialog);
     }
 }
+
+static void delete_flight_cb(GtkButton *button, gpointer user_data) {
+    TablewithDB *afd = (TablewithDB *)user_data;
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Delete Flight",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Delete", GTK_RESPONSE_OK, 
+                                                     NULL);
+    gtk_widget_set_size_request(dialog, 350, 150);
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0);
+
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *label_id = gtk_label_new("Flight ID to Delete:");
+    GtkWidget *entry_id = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_id), "e.g., FL075");
+    gtk_widget_set_hexpand(entry_id, TRUE);
+
+    gtk_box_pack_start(GTK_BOX(hbox), label_id, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), entry_id, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+
+    gtk_widget_show_all(dialog);
+
+
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *flight_id_to_delete = gtk_entry_get_text(GTK_ENTRY(entry_id));
+
+        if (g_utf8_strlen(flight_id_to_delete, -1) == 0) {
+            g_warning("Please enter a Flight ID to delete.");
+            gtk_widget_destroy(dialog);
+            return;
+        }
+
+        gchar *confirm_msg = g_strdup_printf("Are you sure you want to delete flight %s?", flight_id_to_delete);
+        GtkWidget *confirm_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), // Parent to the delete dialog
+                                                          GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                          GTK_MESSAGE_QUESTION,
+                                                          GTK_BUTTONS_YES_NO,
+                                                          "%s", confirm_msg);
+        gtk_window_set_title(GTK_WINDOW(confirm_dialog), "Confirm Deletion");
+        g_free(confirm_msg);
+
+        gint confirm_response = gtk_dialog_run(GTK_DIALOG(confirm_dialog));
+
+        if (confirm_response == GTK_RESPONSE_YES) {
+            char *err_msg = NULL; 
+            if (delete_flight_data((char *)flight_id_to_delete, &flights, afd->db, err_msg) != 0) {
+                g_warning("Error deleting flight %s: %s", flight_id_to_delete, err_msg ? err_msg : "Unknown error");
+                sqlite3_free(err_msg); 
+            } else {
+                g_print("Flight %s deleted successfully.\n", flight_id_to_delete);
+                GtkTreeModel *new_model = populate_flights_info_model();
+                gtk_tree_view_set_model(GTK_TREE_VIEW(afd->table), new_model);
+                g_object_unref(new_model);
+            }
+        }
+        gtk_widget_destroy(confirm_dialog);
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
 GtkWidget *create_flights_info_window(sqlite3 *db){
 
     char *err_msg = 0;
@@ -447,6 +518,7 @@ GtkWidget *create_flights_info_window(sqlite3 *db){
 
     g_signal_connect (add_flight_btn, "clicked", G_CALLBACK (add_flight), afd);
     g_signal_connect (update_flight_btn, "clicked", G_CALLBACK (update_flight), afd);
+    g_signal_connect (delete_flight_btn, "clicked", G_CALLBACK (delete_flight_cb), afd);
 
     gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
 
