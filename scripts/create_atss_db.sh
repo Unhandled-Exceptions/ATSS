@@ -45,7 +45,15 @@ CREATE TABLE IF NOT EXISTS crew_allotments (
   FOREIGN KEY (crew_id) REFERENCES crew(crew_id) ON DELETE CASCADE
 );
 
+-- Flight Emergencies table definition
+CREATE TABLE IF NOT EXISTS flight_emergencies (
+    emergency_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flight_id TEXT NOT NULL,
+    emergency_type TEXT NOT NULL,
+    FOREIGN KEY (flight_id) REFERENCES flights(flight_id) ON DELETE CASCADE
+);
 
+CREATE INDEX IF NOT EXISTS idx_flight_emergencies_flight_id ON flight_emergencies(flight_id);
 CREATE INDEX IF NOT EXISTS idx_flights_runway_time ON flights(runway_time);
 CREATE INDEX IF NOT EXISTS idx_alloted_flight_id ON alloted(flight_id);
 CREATE INDEX IF NOT EXISTS idx_alloted_runway_time ON alloted(runway, allotted_time);

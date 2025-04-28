@@ -21,6 +21,8 @@ void delete_flight_schedules(FL *flights, sqlite3 *db, char *err_msg);
 int view_crew_info(CL *crew_list, char *err_msg);
 void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg);
 
+void view_flight_emergencies(FL *flights, sqlite3 *db, char *err_msg);
+
 int allot(sqlite3 *db, char *err_msg);
 
 int main(int argc, char const *argv[]) {
@@ -71,18 +73,19 @@ int main(int argc, char const *argv[]) {
     while (1) {
         display_header();
         printf("\n\nMenu:\n");
-        printf("1.  View Flight Schedules\n");
-        printf("2.  Add Flight Schedules\n");
-        printf("3.  Update Flight Schedules\n");
-        printf("4.  Delete Flight Schedules\n\n");
-        printf("5.  View Flight Crew Information\n\n");
-        printf("6.  Declare Flight Emergency\n\n");
-        printf("7.  View Runway Allotments\n");
-        printf("8.  Allot Runways to Flights\n");
-        printf("9.  Allot Crew to Flights\n");
-        printf("10. View Crew Allotments\n");
-        printf("11. Runway Utilization Report\n");
-        printf("12. Exit\n"); 
+        printf("1. View Flight Schedules\n");
+        printf("2. Add Flight Schedules\n");
+        printf("3. Update Flight Schedules\n");
+        printf("4. Delete Flight Schedules\n");
+        printf("5. View Flight Crew Information\n");
+        printf("6. Declare Flight Emergency\n");
+        printf("7. View Declared Flight Emergnecies\n");
+        printf("8. View Runway Allotments\n");
+        printf("9. Allot Runways to Flights\n");
+        printf("10. Allot Crew to Flights\n");
+        printf("11. View Crew Allotments\n");
+        printf("12. Runway Utilisation Report\n");
+        printf("13. Exit\n"); 
         get_int_input("\n> ", &choice);
         switch(choice){
             case 1:
@@ -104,12 +107,15 @@ int main(int argc, char const *argv[]) {
                 handle_realtime_event(&flights, the_db, err_msg);
                 break;
             case 7:
-                view_allots(the_db, err_msg);
+                view_flight_emergencies(&flights, the_db, err_msg);
                 break;
             case 8:
+                view_allots(the_db, err_msg);
+                break;
+            case 9:
                 allotment(&flights, the_db, err_msg);
                 break;
-            case 9: 
+            case 10: 
                 printf("Starting crew allotment...\n");
                 if (allot_crew_for_flights(&flights, &crew_list, the_db, &err_msg) == 0) {
                     printf("Reloading crew data after crew allotment...\n");
@@ -126,17 +132,17 @@ int main(int argc, char const *argv[]) {
                     err_msg = NULL;
                 }
                 break;
-           case 10:
+           case 11:
                view_crew_allotments(the_db, &err_msg);
                 if (err_msg) { 
                     sqlite3_free(err_msg);
                     err_msg = NULL;
                 }
                break;
-            case 11:
+            case 12:
                 utilization_report(&flights, the_db, err_msg);
                 break;
-           case 12:
+           case 13:
                free_flight_list(&flights);
                free_crew_list(&crew_list);
                sqlite3_close(the_db);
@@ -436,21 +442,100 @@ void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
     if (strlen(confirmation) > 0 && toupper(confirmation[0]) == 'Y') {
         if (flight_to_update->priority_level == 1) {
             printf("\nFlight '%s' is already at Emergency Priority (1).\n", flight_id_to_update);
+            // Optionally, still record the event type even if priority doesn't change
         } else {
             printf("\nUpdating flight '%s' to Emergency Priority (1)...\n", flight_id_to_update);
 
+            // Create a copy to update priority before calling update_flight_data
             FD updated_flight = *flight_to_update;
             updated_flight.priority_level = 1;
 
+            // Call update_flight_data to handle the priority change in memory and DB
             if (update_flight_data(&updated_flight, flights, db, err_msg) != 0) {
                 fprintf(stderr, "Failed to update flight priority in database.\n");
+                // err_msg should be set by update_flight_data
+                sqlite3_free(err_msg); // Free error message if allocated by update_flight_data
+                err_msg = NULL;
             } else {
                 printf("Flight '%s' priority updated successfully.\n", flight_id_to_update);
+                // Proceed to record the emergency event type
+
+                const char *emergency_types[] = {
+                    "Weather Issue", "Technical Issue", "Medical Emergency", "Security Concern", "Other Emergency"
+                };
+
+                // Ensure event_choice is within bounds (already validated, but good practice)
+                if (event_choice >= 1 && event_choice <= 5) {
+                    const char *event_type = emergency_types[event_choice - 1];
+
+                    // *** MODIFICATION START: Use sqlite3_mprintf ***
+                    char *sql_template = "INSERT INTO flight_emergencies (flight_id, emergency_type) VALUES (%Q, %Q);";
+                    char *sql = sqlite3_mprintf(sql_template, updated_flight.flight_id, event_type);
+
+                    if (sql == NULL) {
+                        fprintf(stderr, "Failed to allocate memory for emergency insert SQL query.\n");
+                    } else {
+                        // Use sqlite3_exec for simple INSERT, or prepare/step/finalize for more control
+                        int rc_exec = sqlite3_exec(db, sql, 0, 0, &err_msg); // Use exec here
+
+                        if (rc_exec != SQLITE_OK) {
+                            fprintf(stderr, "Failed to insert emergency event into database: %s\n", err_msg);
+                            sqlite3_free(err_msg); // Free error message allocated by sqlite3_exec
+                            err_msg = NULL;
+                        } else {
+                            printf("Emergency event ('%s') recorded successfully for flight %s.\n", event_type, updated_flight.flight_id);
+                        }
+                        sqlite3_free(sql); // Free the memory allocated by sqlite3_mprintf
+                    }
+                    // *** MODIFICATION END ***
+                } else {
+                    fprintf(stderr, "Internal error: Invalid event choice after validation.\n");
+                }
             }
         }
     } else {
-        printf("\nPriority update cancelled.\n");
+        printf("\nPriority update cancelled. Emergency event not recorded.\n");
     }
 
+    pauseScreen();
+}
+
+void view_flight_emergencies(FL *flights, sqlite3 *db, char *err_msg) {
+    clear_screen();
+    printf("=========================================\n");
+    printf("      View Declared Flight Emergencies   \n");
+    printf("=========================================\n\n");
+
+    const char *sql = "SELECT flight_id, emergency_type FROM flight_emergencies ORDER BY flight_id;";
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Failed to fetch flight emergencies: %s\n", sqlite3_errmsg(db));
+        return;
+    }
+
+    printf("%-12s %-20s\n", "Flight ID", "Emergency Type");
+    printf("--------------------------------\n");
+
+    int found = 0;
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        const unsigned char *flight_id = sqlite3_column_text(stmt, 0);
+        const unsigned char *emergency_type = sqlite3_column_text(stmt, 1);
+
+        printf("%-12s %-20s\n", flight_id, emergency_type);
+        found = 1;
+    }
+
+    if (!found) {
+        printf("\nNo emergencies declared yet.\n");
+    }
+
+    if (rc != SQLITE_DONE) {
+        fprintf(stderr, "Error while reading flight emergencies: %s\n", sqlite3_errmsg(db));
+    }
+
+    sqlite3_finalize(stmt);
     pauseScreen();
 }
