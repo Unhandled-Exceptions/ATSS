@@ -20,6 +20,7 @@ static void cleanup(GtkApplication *app, gpointer user_data);
 sqlite3 *the_db;
 FL flights;
 CL crew_list;
+char delaypile[50][10];
 
 int main(int argc, char *argv[]) {
     GtkApplication *app;

@@ -592,6 +592,7 @@ GtkWidget *create_crew_info_window(sqlite3 *db){
 
 // Flight Allotment Window - Starts
 
+// Table related stuff
 static int cb_populate_alloted_table_model(void *imusing, int argc, char **argv, char **azColName)
 {
     struct allot_cb_pack *alcb = (struct allot_cb_pack *) imusing;
@@ -643,7 +644,99 @@ static void allot_flights(GtkButton *button, gpointer user_data) {
     GtkTreeModel *new_model = populate_alloted_table_model(the_db);
     gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
     g_object_unref(new_model);
+}
 
+// Flight Delay
+static void delay_flight(GtkButton *button, gpointer user_data) {
+    TablewithDB *afd = (TablewithDB *)user_data;
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Delay Flight",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Update", GTK_RESPONSE_OK,
+                                                     NULL);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10); // 10 pixels spacing between rows
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0); // Pack vbox into content area
+
+    // --- Flight ID Row ---
+    GtkWidget *hbox_flight_id = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); // 5 pixels spacing in this row
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_flight_id, FALSE, FALSE, 0); // Pack row into vbox
+
+    GtkWidget *label_flight_id = gtk_label_new("Flight ID:");
+    // Align label to the left
+    gtk_widget_set_halign(label_flight_id, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_flight_id), label_flight_id, FALSE, FALSE, 5); // Add padding after label
+
+    GtkWidget *entry_flight_id = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_flight_id), entry_flight_id, TRUE, TRUE, 0); // Entry expands
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_flight_id), "e.g., BA2490");
+
+
+    // --- Delay Row ---
+    GtkWidget *hbox_delay = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); // 5 pixels spacing in this row
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_delay, FALSE, FALSE, 0); // Pack row into vbox
+
+    GtkWidget *label_delay = gtk_label_new("Enter delay value (minutes):");
+    gtk_widget_set_halign(label_delay, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_delay), label_delay, FALSE, FALSE, 5); // Add padding after label
+
+    GtkWidget *entry_delay = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_delay), entry_delay, TRUE, TRUE, 0); // Entry expands
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_delay), "e.g., 30");
+
+
+    gtk_widget_set_size_request(dialog, 350, 200); // Increased size slightly
+
+    gtk_widget_show_all(dialog);
+
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *flight_id_text = gtk_entry_get_text(GTK_ENTRY(entry_flight_id));
+
+        const char *delay_text = gtk_entry_get_text(GTK_ENTRY(entry_delay));
+        int delay_value = atoi(delay_text); // Convert the text to an integer
+
+        // TODO: Use flight_id_text (string) and delay_value (integer) here.
+        // You would typically use these values to identify the specific flight
+        // and update its delay in your data structure (afd) or database.
+        // For example:
+        // afd->current_flight_id = flight_id_text; // Assuming you have a way to store/find the flight
+        // afd->delay = delay_value;
+        // update_database(afd, flight_id_text, delay_value); // Call a function to update the DB
+
+        g_print("Entered Flight ID: %s\n", flight_id_text);
+        g_print("Entered delay: %d\n", delay_value); // Print for demonstration
+    }
+
+    // Destroy the dialog
+    gtk_widget_destroy(dialog);
+}
+
+
+// Conflict resolution
+static void resolve_conflicts(GtkButton *button, gpointer user_data) {
+    // Unpacking the variabls
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table;
+
+    g_print("inside rresolve conflict!\n");
+    // char err = 0;
+    // printf("allot_flights db pointer:  %p\n", (void*)the_db );
+    // fflush(stdout);
+    // allotment(&flights, the_db, &err);
+
+    // Updating the treeview.
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+    g_object_unref(new_model);
 }
 
 
@@ -690,11 +783,13 @@ GtkWidget *create_allot_window(sqlite3 *db) {
     gtk_box_set_spacing (GTK_BOX (bbox), 10);
 
     GtkWidget *allot_flights_btn = gtk_button_new_with_label("Allot flights");
-    GtkWidget *cancel_flight_btn = gtk_button_new_with_label("Cancel Flight");
+    GtkWidget *delay_flight_btn = gtk_button_new_with_label("Delay flight");
+    GtkWidget *conflict_resolution_btn = gtk_button_new_with_label("Resolve Conflicts");
 
     gtk_container_add (GTK_CONTAINER (bbox), allot_flights_btn);
-    gtk_container_add (GTK_CONTAINER (bbox), cancel_flight_btn);
-
+    gtk_container_add (GTK_CONTAINER (bbox), delay_flight_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), conflict_resolution_btn);
+    
     // The Alloted table
     GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
@@ -712,7 +807,8 @@ GtkWidget *create_allot_window(sqlite3 *db) {
     afd->table = table;
 
     g_signal_connect (allot_flights_btn, "clicked", G_CALLBACK (allot_flights), afd);
-    // g_signal_connect (update_flight_btn, "clicked", G_CALLBACK (update_flight), afd);
+    g_signal_connect (delay_flight_btn, "clicked", G_CALLBACK (delay_flight), afd);
+    g_signal_connect (conflict_resolution_btn, "clicked", G_CALLBACK (delay_flight), afd);
 
 
     gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);

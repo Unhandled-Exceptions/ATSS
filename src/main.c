@@ -113,7 +113,7 @@ int main(int argc, char const *argv[]) {
                 view_allots(the_db, err_msg);
                 break;
             case 9:
-                allotment(&flights, the_db, err_msg);
+                tui_allotment(&flights, the_db, err_msg);
                 break;
             case 10: 
                 printf("Starting crew allotment...\n");

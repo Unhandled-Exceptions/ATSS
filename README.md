@@ -45,7 +45,7 @@ ATSS/
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
 
 ## TODO
-- [ ] Make the allot button work
+- [x] Make the allot button work
 - [ ] Add delay handling GUI
 
 

@@ -70,6 +70,9 @@ GtkWidget *create_crew_info_window(sqlite3 *db);
 #endif
 
 // Flight Allotment Window - Starts
+
+extern char delaypile[50][10];
+
 enum
 {
   FA_ID = 0,
