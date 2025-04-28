@@ -2,12 +2,20 @@
 #define WINDOWS_H
 
 #include <gtk/gtk.h>
+#include <stdlib.h> 
 #include <sqlite3.h>
 #include "flights.h"
 #include "alloter.h"
 #include "crew_alloter.h"
 #include "crew.h"
 #include "utils.h"
+
+// Helpful Utils - Starts
+typedef struct {
+  sqlite3 *db;
+  GtkWidget *table;
+} TablewithDB;
+// Helpful Utils End
 
 // Flight Information Window - Starts
 
