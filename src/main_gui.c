@@ -80,13 +80,13 @@ static void create_main_view(GtkWidget *window){
     gtk_stack_add_named(GTK_STACK(stack), label3, "flight_alloter");
     gtk_container_child_set(GTK_CONTAINER(stack), label3, "title", "Flight Alloter", NULL);
 
-    GtkWidget *label4 = gtk_label_new("Crew Alloter Here !!");
-    gtk_stack_add_named(GTK_STACK(stack), label4, "crew_alloter");
-    gtk_container_child_set(GTK_CONTAINER(stack), label4, "title", "Crew Alloter", NULL);
+    GtkWidget *crew_alloter_window = create_crew_alloter_window(the_db);
+    gtk_stack_add_named(GTK_STACK(stack), crew_alloter_window, "crew_alloter");
+    gtk_container_child_set(GTK_CONTAINER(stack), crew_alloter_window, "title", "Crew Alloter", NULL);
 
-    GtkWidget *label5 = gtk_label_new("Flight Emergencies Here !!");
-    gtk_stack_add_named(GTK_STACK(stack), label5, "flight_emergencies");
-    gtk_container_child_set(GTK_CONTAINER(stack), label5, "title", "Flight Emergencies", NULL);
+    GtkWidget *flight_emergency_window = create_flight_emergencies_window(the_db);
+    gtk_stack_add_named(GTK_STACK(stack), flight_emergency_window, "flight_emergencies");
+    gtk_container_child_set(GTK_CONTAINER(stack), flight_emergency_window, "title", "Flight Emergencies", NULL);
 
     GtkWidget *label7 = gtk_label_new(" Runway Utilisation and Delay Reports Here !!");
     gtk_stack_add_named(GTK_STACK(stack), label7, "reports");

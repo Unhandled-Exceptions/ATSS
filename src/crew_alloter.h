@@ -39,6 +39,7 @@ int allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, char **err_m
 void view_crew_allotments(sqlite3 *db, char **err_msg);
 int view_crew_allotments_cb(void *NotUsed, int argc, char **argv, char **azColName);
 int update_batch_crew_hours_in_db(CL *crew_list, sqlite3 *db, char **err_msg);
+int gui_allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, int *out_success_count, int *out_fail_count, char **err_msg);
 
 
 #endif

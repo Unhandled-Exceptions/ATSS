@@ -359,3 +359,155 @@ static int get_allotted_flights_cb(void *data, int argc, char **argv, char **azC
     }
     return 0;
 }
+
+int gui_allot_crew_for_flights(FL *flights, CL *crew_list, sqlite3 *db, int *out_success_count, int *out_fail_count, char **err_msg) {
+    *out_success_count = 0;
+    *out_fail_count = 0;
+    *err_msg = NULL;
+
+    char *delete_sql = "DELETE FROM crew_allotments;";
+    int rc = sqlite3_exec(db, delete_sql, 0, 0, err_msg);
+    if (rc != SQLITE_OK) {
+        return 1;
+    }
+
+    AllottedFlightList allotted_flights;
+    init_allotted_flight_list(&allotted_flights, 10);
+    char *select_sql = "SELECT DISTINCT flight_id FROM alloted ORDER BY allotted_time;";
+    rc = sqlite3_exec(db, select_sql, get_allotted_flights_cb, &allotted_flights, err_msg);
+    if (rc != SQLITE_OK) {
+        free_allotted_flight_list(&allotted_flights);
+        return 1;
+    }
+
+    if (allotted_flights.size == 0) {
+        free_allotted_flight_list(&allotted_flights);
+        return 0;
+    }
+
+    bool *crew_assigned_in_this_run = calloc(crew_list->allocated, sizeof(bool));
+    if (!crew_assigned_in_this_run) {
+         *err_msg = strdup("Error: Memory allocation failed for crew tracking.");
+         free_allotted_flight_list(&allotted_flights);
+         return 2;
+    }
+
+    int *original_hours = malloc(crew_list->size * sizeof(int));
+     if (!original_hours) {
+         *err_msg = strdup("Error: Memory allocation failed for original hours backup.");
+         free(crew_assigned_in_this_run);
+         free_allotted_flight_list(&allotted_flights);
+         return 2;
+     }
+     for(size_t i = 0; i < crew_list->size; ++i) {
+         original_hours[i] = crew_list->crew[i].hours_worked;
+     }
+
+    for (size_t i = 0; i < allotted_flights.size; ++i) {
+        const char *current_flight_id = allotted_flights.flights[i].flight_id;
+        FD *flight_details = find_flight_by_id(current_flight_id, flights);
+        if (!flight_details) {
+            (*out_fail_count)++;
+            continue;
+        }
+
+        float duration_h = calculate_flight_duration_hours(flight_details->departure_time, flight_details->arrival_time);
+        if (duration_h < 0.0f) {
+            (*out_fail_count)++;
+            continue;
+        }
+
+        int pilots_found = 0;
+        int attendants_found = 0;
+        int assigned_crew_indices[REQUIRED_PILOTS + REQUIRED_ATTENDANTS];
+        int assigned_count = 0;
+
+        bool *assigned_to_this_flight = calloc(crew_list->allocated, sizeof(bool));
+        if (!assigned_to_this_flight) {
+            
+            (*out_fail_count)++;
+            continue;
+        }
+
+        for (size_t j = 0; j < crew_list->size && pilots_found < REQUIRED_PILOTS; ++j) {
+            CD *crew = &crew_list->crew[j];
+            if (strcmp(crew->designation, "pilot") == 0 &&
+                strcmp(crew->airline, flight_details->airline) == 0 &&
+                (crew->hours_worked + (int)duration_h) <= MAX_HOURS_WORKED &&
+                !crew_assigned_in_this_run[j] &&
+                !assigned_to_this_flight[j]) {
+                assigned_crew_indices[assigned_count++] = j;
+                assigned_to_this_flight[j] = true;
+                pilots_found++;
+            }
+        }
+
+        for (size_t j = 0; j < crew_list->size && attendants_found < REQUIRED_ATTENDANTS; ++j) {
+            CD *crew = &crew_list->crew[j];
+            if (strcmp(crew->designation, "attendant") == 0 &&
+                strcmp(crew->airline, flight_details->airline) == 0 &&
+                (crew->hours_worked + (int)duration_h) <= MAX_HOURS_WORKED &&
+                !crew_assigned_in_this_run[j] &&
+                !assigned_to_this_flight[j]) {
+                assigned_crew_indices[assigned_count++] = j;
+                assigned_to_this_flight[j] = true;
+                attendants_found++;
+            }
+        }
+
+        free(assigned_to_this_flight);
+
+        if (pilots_found == REQUIRED_PILOTS && attendants_found == REQUIRED_ATTENDANTS) {
+            (*out_success_count)++;
+
+            for (int k = 0; k < assigned_count; ++k) {
+                int crew_index = assigned_crew_indices[k];
+                CD *assigned_crew = &crew_list->crew[crew_index];
+
+                char *insert_sql_template = "INSERT INTO crew_allotments (flight_id, crew_id) VALUES ('%q', %d);";
+                char *insert_sql = sqlite3_mprintf(insert_sql_template, current_flight_id, assigned_crew->crew_id);
+
+                if (!insert_sql) {
+                    sqlite3_free(insert_sql);
+                    continue;
+                }
+
+                rc = sqlite3_exec(db, insert_sql, 0, 0, err_msg);
+                sqlite3_free(insert_sql);
+
+                if (rc != SQLITE_OK) {
+                } else {
+                     assigned_crew->hours_worked += (int)(duration_h + 0.5f);
+                     crew_assigned_in_this_run[crew_index] = true;
+                }
+            }
+        } else {
+            (*out_fail_count)++;
+        }
+    }
+
+    int update_rc = update_batch_crew_hours_in_db(crew_list, db, err_msg);
+    if (update_rc != 0) {
+
+        for(size_t k = 0; k < crew_list->size; ++k) {
+            crew_list->crew[k].hours_worked = original_hours[k];
+        }
+
+        if (*err_msg == NULL) {
+           *err_msg = strdup("Error saving updated crew hours to the database. Hours reverted in memory.");
+        }
+        rc = 3;
+    } else {
+        rc = 0; 
+    }
+
+    free(crew_assigned_in_this_run);
+    free(original_hours);
+    free_allotted_flight_list(&allotted_flights);
+
+    if (rc == 0 && *err_msg != NULL) {
+        return 1;
+    }
+
+    return rc;
+}
