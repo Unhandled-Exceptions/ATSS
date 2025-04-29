@@ -1,4 +1,7 @@
 #include "windows.h"
+
+struct delaydata delaydat;
+
 // Helper Functions - Start
 
 // Convert time from HHMM to HH:MM
@@ -588,6 +591,593 @@ GtkWidget *create_crew_info_window(sqlite3 *db){
     return win_box;
 }
 // Crew Information Window - Ends
+
+
+// Flight Allotment Window - Starts
+
+// Table related stuff
+static int cb_populate_alloted_table_model(void *imusing, int argc, char **argv, char **azColName)
+{
+    struct allot_cb_pack *alcb = (struct allot_cb_pack *) imusing;
+
+    // We'll put this in the callback
+    char *formatted_runway = g_strdup(format_time(argv[2]));
+    gtk_list_store_append(*alcb->store, alcb->iter);
+    gtk_list_store_set(*alcb->store, alcb->iter, FA_ID, argv[0], FA_FLIGHT_ID, argv[1], FA_TIME, formatted_runway, FA_RUNWAY, argv[3], -1);
+    // printf("%-6s %-12s %-8s %s\n",
+    //        argv[0] ? argv[0] : "NULL",
+    //        argv[1] ? argv[1] : "NULL",
+    //        argv[2] ? argv[2] : "NULL",
+    //        argv[3] ? argv[3] : "NULL");
+    return 0;
+}
+
+static GtkTreeModel *populate_alloted_table_model (sqlite3 *db) {
+    GtkListStore *store = gtk_list_store_new(FA_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeIter iter;
+    struct allot_cb_pack alcb = {&store, &iter};
+
+
+    // SQL Section instead of a for loop we have cb function.
+    char *err_msg = 0;
+    char *query = "SELECT * FROM alloted ORDER BY allotted_time;";    
+    int rc = sqlite3_exec(db, query, cb_populate_alloted_table_model, &alcb, &err_msg);
+
+    if (rc != 0) {
+        g_error("Failed to load alloted data from database\n");
+        sqlite3_close(db);
+        exit(1);
+    }
+    // SQL part over.
+    return GTK_TREE_MODEL (store);
+}
+
+static void allot_flights(GtkButton *button, gpointer user_data) {
+    // Unpacking the variabls
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table;
+
+    char err = 0;
+    printf("allot_flights db pointer:  %p\n", (void*)the_db );
+    fflush(stdout);
+    delaydat = allotment(&flights, the_db, &err);
+
+    // Updating the treeview.
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+    g_object_unref(new_model);
+}
+
+// Flight Delay
+static void delay_flight(GtkButton *button, gpointer user_data) {
+
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table;
+
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Delay Flight",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Update", GTK_RESPONSE_OK,
+                                                     NULL);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10); // 10 pixels spacing between rows
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0); // Pack vbox into content area
+
+    // --- Flight ID Row ---
+    GtkWidget *hbox_flight_id = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); // 5 pixels spacing in this row
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_flight_id, FALSE, FALSE, 0); // Pack row into vbox
+
+    GtkWidget *label_flight_id = gtk_label_new("Flight ID:");
+    // Align label to the left
+    gtk_widget_set_halign(label_flight_id, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_flight_id), label_flight_id, FALSE, FALSE, 5); // Add padding after label
+
+    GtkWidget *entry_flight_id = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_flight_id), entry_flight_id, TRUE, TRUE, 0); // Entry expands
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_flight_id), "e.g., BA2490");
+
+
+    // --- Delay Row ---
+    GtkWidget *hbox_delay = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5); // 5 pixels spacing in this row
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_delay, FALSE, FALSE, 0); // Pack row into vbox
+
+    GtkWidget *label_delay = gtk_label_new("Enter new time (HHMM):");
+    gtk_widget_set_halign(label_delay, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_delay), label_delay, FALSE, FALSE, 5); // Add padding after label
+
+    GtkWidget *entry_delay = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_delay), entry_delay, TRUE, TRUE, 0); // Entry expands
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_delay), "e.g., 1030");
+
+    gtk_widget_set_size_request(dialog, 350, 200); // Increased size slightly
+
+    gtk_widget_show_all(dialog);
+
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *flight_id_text = gtk_entry_get_text(GTK_ENTRY(entry_flight_id));
+
+        const char *delay_text = gtk_entry_get_text(GTK_ENTRY(entry_delay));
+        int delay_value = atoi(delay_text); // Convert the text to an integer
+
+        // char *flight_id;
+        // strcpy(flight_id, flight_id_text);
+        // char *delayed_time;
+        // strcpy(delayed_time, delay_text);
+
+        // TODO: Use flight_id_text (string) and delay_value (integer) here.
+        // You would typically use these values to identify the specific flight
+        // and update its delay in your data structure (afd) or database.
+        // For example:
+        // afd->current_flight_id = flight_id_text; // Assuming you have a way to store/find the flight
+        // afd->delay = delay_value;
+        // update_database(afd, flight_id_text, delay_value); // Call a function to update the DB
+
+        g_print("Entered Flight ID: $%s$\n", flight_id_text);
+        g_print("Entered delay: %d\n", delay_value); // Print for demonstration
+
+        char err;
+        remove_allot(flight_id_text, 1, the_db, &err);
+        add_allot(flight_id_text, delay_text, 1, the_db, &err);
+    }
+
+    // Updating the treeview.
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+    g_object_unref(new_model);
+
+    // Destroy the dialog
+    gtk_widget_destroy(dialog);
+}
+
+// --- Callback Functions ---
+
+// Callback for the "Delay" button
+// Modified to use flight_identifier string
+static void on_delay_flight_clicked(GtkButton *button, gpointer user_data) {
+    FlightActionData *action_data = (FlightActionData *)user_data;
+    // Ensure action_data and its members are valid before using them
+    if (!action_data || !action_data->flight_identifier || !action_data->afd || !action_data->afd->db || !action_data->afd->table) {
+         g_warning("Invalid user_data received in on_delay_flight_clicked");
+         return;
+    }
+
+    const char *identifier = action_data->flight_identifier;
+    TablewithDB *afd = action_data->afd;
+    // GtkWidget *dialog_from_data = action_data->dialog; // Maybe needed for something else? Renamed to avoid conflict.
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table; // Assuming this is the GtkTreeView
+
+    printf("Delay button clicked for flight identifier: %s\n", identifier);
+
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+    if (!parent_window) {
+        g_warning("Could not get parent window for the dialog!");
+        return; // Or handle error appropriately
+    }
+    // Check if the parent is actually a window
+    if (!GTK_IS_WINDOW(parent_window)) {
+         g_warning("Parent widget is not a GtkWindow!");
+         // Find the actual parent window if necessary, or handle error
+         parent_window = gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_WINDOW);
+         if (!parent_window) {
+             g_warning("Could not find ancestor GtkWindow!");
+             return;
+         }
+    }
+
+
+    // Create the NEW dialog locally
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Delay Flight",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Update", GTK_RESPONSE_OK,
+                                                     NULL);
+
+    // Check if dialog creation succeeded
+    if (!dialog) {
+        g_critical("Failed to create the dialog window!");
+        return;
+    }
+
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0);
+
+    // --- Delay Row ---
+    GtkWidget *hbox_delay = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_delay, FALSE, FALSE, 0);
+
+    GtkWidget *label_delay = gtk_label_new("Enter new time (HHMM):");
+    gtk_widget_set_halign(label_delay, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_delay), label_delay, FALSE, FALSE, 5);
+
+    GtkWidget *entry_delay = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_delay), entry_delay, TRUE, TRUE, 0);
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_delay), "e.g., 1030");
+
+    gtk_widget_set_size_request(dialog, 350, -1); // Often better to let height be automatic
+
+    // Explicitly show the dialog and its contents BEFORE running it
+    gtk_widget_show_all(dialog);
+
+    g_print("Running the dialog...\n"); // Debug print
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+    g_print("Dialog response: %d\n", response); // Debug print
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *delay_text = gtk_entry_get_text(GTK_ENTRY(entry_delay));
+        // Add validation for delay_text (e.g., check format, length) here!
+        int delay_value = atoi(delay_text); // Consider using strtol for better error checking
+
+        g_print("Entered delay text: '%s', integer value: %d\n", delay_text ? delay_text : "(null)", delay_value);
+
+        // Assuming remove_allot and add_allot handle potential NULL from delay_text if empty
+        char err = 0; // Initialize err
+        // IMPORTANT: Ensure remove_allot and add_allot are thread-safe if called from UI thread
+        // and potentially interacting with background operations.
+        remove_allot(identifier, 1, the_db, &err);
+        // Handle potential error from remove_allot based on 'err'
+        add_allot(identifier, delay_text, 1, the_db, &err);
+         // Handle potential error from add_allot based on 'err'
+    }
+
+    // Updating the treeview.
+    // Ensure populate_alloted_table_model is safe to call here (threading?)
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    if (new_model) { // Check if model creation succeeded
+        // Ensure 'table' is a valid GtkTreeView
+        if (GTK_IS_TREE_VIEW(table)) {
+             gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+             g_object_unref(new_model); // Unref only after setting it
+        } else {
+             g_warning("afd->table is not a GtkTreeView!");
+             g_object_unref(new_model); // Unref if not used
+        }
+    } else {
+        g_warning("Failed to populate new tree model.");
+    }
+
+
+    // Destroy the dialog explicitly AFTER gtk_dialog_run has returned
+    // The GTK_DIALOG_DESTROY_WITH_PARENT flag handles destruction if the parent closes,
+    // but destroying it here ensures it's cleaned up immediately after use.
+    gtk_widget_destroy(dialog);
+}
+
+// Callback for the "Cancel" button
+// Modified to use flight_identifier string
+static void on_cancel_flight_clicked(GtkButton *button, gpointer user_data) {
+    FlightActionData *action_data = (FlightActionData *)user_data;
+    const char *identifier = action_data->flight_identifier;
+    TablewithDB *afd = action_data->afd;
+    GtkWidget *dialog = action_data->dialog; // Dialog is available if needed
+    GtkWidget *row_widget = action_data->row_widget; // Get the row to remove
+
+    printf("Cancel button clicked for flight identifier: %s\n", identifier);
+
+    // --- Implement Cancel Logic (Database Update) ---
+    // 1. Update the flight status to 'Cancelled' in the database (afd->db) for the flight matching 'identifier'.
+    // 2. Handle potential database errors.
+    // --- End of Cancel Logic ---
+
+    // Remove the row widget from the dialog
+    // This visually removes the entry from the list immediately.
+    // Destroying the widget will also trigger the destruction of its children (label, buttons)
+    // and associated signal data (like the FlightActionData via free_action_data).
+    gtk_widget_destroy(row_widget);
+
+    // No need to explicitly close the dialog here unless desired.
+    // The user can still cancel/delay other flights or close the dialog manually.
+}
+
+// Function to free FlightActionData when the button is destroyed
+// No change needed here as we only free the container struct, not the string it points to.
+static void free_action_data(gpointer data, GClosure *closure) {
+    free(data);
+}
+
+static void refresh_main_table_view(gpointer user_data) {
+    TablewithDB *afd = (TablewithDB *)user_data;
+    printf("Refreshing main table view...\n");
+    GtkTreeModel *new_model = populate_alloted_table_model(afd->db);
+    if (new_model) { // Check if model creation was successful
+        gtk_tree_view_set_model(GTK_TREE_VIEW(afd->table), NULL); // Detach old model first
+        gtk_tree_view_set_model(GTK_TREE_VIEW(afd->table), new_model);
+        g_object_unref(new_model); // Dereference the model, treeview holds its own reference
+    } else {
+        fprintf(stderr, "Error: Failed to create new tree model for refresh.\n");
+    }
+}
+
+// Conflict resolution
+static void resolve_conflicts(GtkButton *button, gpointer user_data) {
+    // Unpacking the variables
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *the_db = afd->db; // Keep DB access if needed for callbacks
+    GtkWidget *main_table = afd->table; // Main application table
+
+
+    // Basic check
+    if (delaydat.delaycount <= 0) {
+         // Optionally show a message to the user
+        GtkWidget *msg_dialog = gtk_message_dialog_new(NULL, // Parent window
+                                         GTK_DIALOG_DESTROY_WITH_PARENT,
+                                         GTK_MESSAGE_INFO,
+                                         GTK_BUTTONS_OK,
+                                         "No delayed flights to resolve.");
+        gtk_dialog_run(GTK_DIALOG(msg_dialog));
+        gtk_widget_destroy(msg_dialog);
+        return; // Nothing to do
+    }
+
+
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    // Create the dialog - using "Close" instead of "Update"
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Flight Resolution",
+        GTK_WINDOW(parent_window),
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        "_Close", GTK_RESPONSE_CLOSE, // Changed from OK/Cancel
+        NULL);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 600, 400); // Adjusted size
+
+    // Get the content area of the dialog
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    // Create a scrolled window to hold the list
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(scrolled_window, TRUE); // Allow vertical expansion
+    gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 0);
+
+    // Create a vertical box to hold flight rows
+    GtkWidget *list_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5); // Spacing between rows
+    gtk_container_add(GTK_CONTAINER(scrolled_window), list_box);
+
+    // --- Populate Flight List from delaypile ---
+    // Iterate through the provided delaypile array
+    for (int i = 0; i < delaydat.delaycount; i++) {
+        // Create a horizontal box for each flight row
+        GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10); // Spacing within row
+        gtk_box_pack_start(GTK_BOX(list_box), row_box, FALSE, FALSE, 0);
+
+        // Create label for flight identifier (using data from delaypile)
+        char flight_details[100]; // Adjust size as needed
+        snprintf(flight_details, sizeof(flight_details),
+                 "Flight: %s",
+                 delaydat.delaypile[i]); // Display the identifier from the array
+        GtkWidget *label = gtk_label_new(flight_details);
+        gtk_label_set_xalign(GTK_LABEL(label), 0.0); // Align text left
+        gtk_box_pack_start(GTK_BOX(row_box), label, TRUE, TRUE, 0); // Label expands
+
+        // --- Create Action Buttons ---
+        GtkWidget *delay_button = gtk_button_new_with_label("Delay");
+        GtkWidget *cancel_button = gtk_button_new_with_label("Cancel");
+
+        // Allocate data for the callbacks
+        // IMPORTANT: This memory needs to be freed. We use g_signal_connect_data
+        // to free it when the button (the signal object) is destroyed.
+        FlightActionData *delay_data = malloc(sizeof(FlightActionData));
+        // Point directly to the string in the delaypile array.
+        // Ensure delaypile's lifetime exceeds the dialog's lifetime.
+        delay_data->flight_identifier = delaydat.delaypile[i];
+        delay_data->afd = afd;
+        delay_data->dialog = dialog;
+        delay_data->row_widget = row_box; // Store the row widget
+
+
+        FlightActionData *cancel_data = malloc(sizeof(FlightActionData));
+        // Point directly to the string in the delaypile array.
+        cancel_data->flight_identifier = delaydat.delaypile[i];
+        cancel_data->afd = afd;
+        cancel_data->dialog = dialog;
+        cancel_data->row_widget = row_box; // Store the row widget
+
+        // Connect signals, passing flight-specific data
+        g_signal_connect_data(delay_button, "clicked",
+                              G_CALLBACK(on_delay_flight_clicked),
+                              delay_data, // Pass allocated data
+                              free_action_data, // Function to free data
+                              0);
+        g_signal_connect_data(cancel_button, "clicked",
+                              G_CALLBACK(on_cancel_flight_clicked),
+                              cancel_data, // Pass allocated data
+                              free_action_data, // Function to free data
+                              0);
+
+
+        // Pack buttons (pack end, non-expanding)
+        gtk_box_pack_end(GTK_BOX(row_box), cancel_button, FALSE, FALSE, 0);
+        gtk_box_pack_end(GTK_BOX(row_box), delay_button, FALSE, FALSE, 0);
+    }
+    // Removed freeing of 'flights' array as it's no longer used
+
+
+    // --- Show Dialog and Handle Response ---
+    gtk_widget_show_all(dialog);
+
+    // Connect to the response signal to handle dialog closure
+    g_signal_connect(dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
+
+
+    // --- Refresh Main Table (Moved) ---
+    // Refreshing the main table should happen *after* an action is confirmed
+    // or when the dialog is closed if changes were made.
+    // It's better to trigger the refresh from the callbacks or upon dialog closure response
+    // if changes occurred. For simplicity here, we refresh unconditionally after the
+    // dialog is destroyed (which happens upon response).
+
+    // We connect the refresh logic to the dialog's destroy signal
+    g_signal_connect_swapped(dialog, "destroy",
+                             G_CALLBACK(refresh_main_table_view),
+                             afd); // Pass afd to the refresh function
+
+    // gtk_widget_destroy(dialog); // Destroy is handled by the response signal now
+
+}
+
+// This calls populate_alloted_table_model()
+static GtkWidget *create_alloted_table_widget (sqlite3 *db){
+    GtkWidget *table = gtk_tree_view_new();
+    GtkCellRenderer *renderer;
+
+    char *cols[] = {"ID", "Flight ID", "Time", "Runway"};
+
+    for (int i = 0; i < FA_NUM_COLS; i++){
+        renderer = gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW (table), -1, cols[i], renderer,"text", i, NULL);
+    }
+
+    GtkTreeModel *model = populate_alloted_table_model(db);
+    gtk_tree_view_set_model (GTK_TREE_VIEW (table), model);
+
+    g_object_unref (model);
+
+    return table;
+}
+
+// Root view for the the alloter
+GtkWidget *create_allot_window(sqlite3 *db) {
+    
+    GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
+    
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *frame = gtk_frame_new ("Actions");
+
+    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
+
+    gtk_container_add (GTK_CONTAINER (frame), bbox);
+    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10); 
+    
+    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
+    gtk_box_set_spacing (GTK_BOX (bbox), 10);
+
+    GtkWidget *allot_flights_btn = gtk_button_new_with_label("Allot flights");
+    GtkWidget *delay_flight_btn = gtk_button_new_with_label("Delay flight");
+    GtkWidget *conflict_resolution_btn = gtk_button_new_with_label("Resolve Conflicts");
+
+    gtk_container_add (GTK_CONTAINER (bbox), allot_flights_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), delay_flight_btn);
+    gtk_container_add (GTK_CONTAINER (bbox), conflict_resolution_btn);
+    
+    // The Alloted table
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN); // Optional: adds a nice border
+
+    GtkWidget *table = create_alloted_table_widget(db);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    // Binding functions to buttons
+    printf("create window db pointer:  %p\n", (void*)db );
+    fflush(stdout);
+
+    TablewithDB *afd = g_malloc(sizeof(TablewithDB));
+    afd->db = db;
+    afd->table = table;
+
+    g_signal_connect (allot_flights_btn, "clicked", G_CALLBACK (allot_flights), afd);
+    g_signal_connect (delay_flight_btn, "clicked", G_CALLBACK (delay_flight), afd);
+    g_signal_connect (conflict_resolution_btn, "clicked", G_CALLBACK (resolve_conflicts), afd);
+
+
+    gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
+
+    return win_box;
+}
+
+// Flight Allotment Window - Ends
+
+// Runway Utilization Report - Starts
+GtkWidget *create_report_window(sqlite3 *db) {
+    GtkWidget *win_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
+
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *title_label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title_label), "<span size=\"large\" weight=\"bold\">Runway Utilization Report</span>");
+    gtk_widget_set_halign(title_label, GTK_ALIGN_CENTER);
+
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+
+    char err_msg[256] = {0};
+    struct report_data reportdat = utilization_report(&flights, db, err_msg);
+
+    for (int i = 0; i < RUNWAYCOUNT; ++i) {
+
+        char* usage_labeltext;
+        asprintf(&usage_labeltext, "Runway No. %d\t Usage time", i + 1);
+        GtkWidget *usage_label = gtk_label_new(usage_labeltext);
+        GtkWidget *usage_entry = gtk_entry_new();
+
+        char* usage_valuetext;
+        asprintf(&usage_valuetext, "%d mins", reportdat.usage_time[i]);
+
+        gtk_editable_set_editable(GTK_EDITABLE(usage_entry), FALSE);
+        gtk_entry_set_text(GTK_ENTRY(usage_entry), usage_valuetext);
+        gtk_widget_set_hexpand(usage_entry, TRUE);
+
+        char* percentage_labeltext;
+        asprintf(&percentage_labeltext, "Utilization", i + 1);
+        GtkWidget *percentage_label = gtk_label_new(percentage_labeltext);
+        GtkWidget *percentage_entry = gtk_entry_new();
+
+        char* percentage_valuetext;
+        int perc = reportdat.usage_time[i] * 100/ 1440;
+        asprintf(&percentage_valuetext, "%d %%", perc);        
+    
+        gtk_editable_set_editable(GTK_EDITABLE(percentage_entry), FALSE);
+        gtk_entry_set_text(GTK_ENTRY(percentage_entry), percentage_valuetext);
+        gtk_widget_set_hexpand(percentage_entry, TRUE);
+
+        gtk_grid_attach(GTK_GRID(grid), usage_label,       0, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), usage_entry,       1, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), percentage_label,  2, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), percentage_entry,  3, i, 1, 1);
+
+        free(usage_labeltext);
+        free(usage_valuetext);
+        free(percentage_labeltext);
+        free(percentage_valuetext);
+    }
+
+    gtk_box_pack_start(GTK_BOX(win_box), title_label, FALSE, FALSE, 10);
+    gtk_box_pack_start(GTK_BOX(win_box), grid, FALSE, FALSE, 0);
+
+    return win_box;
+}
+
+// Runway Utilization Report - Ends
+
+
 
 //  Flight Emergencies Window - Starts
 

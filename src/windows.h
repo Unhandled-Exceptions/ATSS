@@ -107,3 +107,35 @@ GtkWidget *create_crew_alloter_window(sqlite3 *db);
 // Crew Alloter Window - End
 
 #endif
+
+// Flight Allotment Window - Starts
+
+typedef struct {
+  const char* flight_identifier; // e.g., "BA123" from delaypile
+  TablewithDB *afd;           // Contains DB connection and main table
+  GtkWidget *dialog;          // The dialog window itself
+  GtkWidget *row_widget;      // The GtkBox representing the flight row in the dialog
+} FlightActionData;
+
+enum
+{
+  FA_ID = 0,
+  FA_FLIGHT_ID,
+  FA_TIME,
+  FA_RUNWAY,
+  FA_NUM_COLS
+} ;
+
+struct allot_cb_pack {
+  GtkListStore **store;
+  GtkTreeIter *iter;
+  int i;
+};
+
+
+GtkWidget *create_allot_window(sqlite3 *db);
+// Flight Allotment Window - Ends
+
+// Runway Utilization Report - Starts
+GtkWidget *create_report_window(sqlite3 *db);
+// Runway Utilization Report - Ends

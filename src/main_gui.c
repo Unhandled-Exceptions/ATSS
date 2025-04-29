@@ -20,6 +20,7 @@ static void cleanup(GtkApplication *app, gpointer user_data);
 sqlite3 *the_db;
 FL flights;
 CL crew_list;
+char delaypile[50][10];
 
 int main(int argc, char *argv[]) {
     GtkApplication *app;
@@ -76,7 +77,8 @@ static void create_main_view(GtkWidget *window){
     gtk_stack_add_named(GTK_STACK(stack), crew_info_window, "crew_info");
     gtk_container_child_set(GTK_CONTAINER(stack), crew_info_window, "title", "Crew Information", NULL);
 
-    GtkWidget *label3 = gtk_label_new("Flight Alloter Here !!");
+    // GtkWidget *label3 = gtk_label_new("Fret not, Varghese is here!");
+    GtkWidget *label3 = create_allot_window(the_db);
     gtk_stack_add_named(GTK_STACK(stack), label3, "flight_alloter");
     gtk_container_child_set(GTK_CONTAINER(stack), label3, "title", "Flight Alloter", NULL);
 
@@ -88,7 +90,7 @@ static void create_main_view(GtkWidget *window){
     gtk_stack_add_named(GTK_STACK(stack), flight_emergency_window, "flight_emergencies");
     gtk_container_child_set(GTK_CONTAINER(stack), flight_emergency_window, "title", "Flight Emergencies", NULL);
 
-    GtkWidget *label7 = gtk_label_new(" Runway Utilisation and Delay Reports Here !!");
+    GtkWidget *label7 = create_report_window(the_db);
     gtk_stack_add_named(GTK_STACK(stack), label7, "reports");
     gtk_container_child_set(GTK_CONTAINER(stack), label7, "title", "Reports", NULL);
 

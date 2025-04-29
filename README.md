@@ -45,9 +45,10 @@ ATSS/
 > Note: bin/ obj/ are created on your pc temporarily while compiling.
 
 ## TODO
-- [x] Better makefile
-- [x] Make db names as arguments instead of inputing inside the program
-- [ ] Setup proper formatting.
+- [x] Make the allot button work
+- [ ] Add delay handling GUI
+- [ ] Add status field to the allot table.
+
 
 ## Useful commands
 
