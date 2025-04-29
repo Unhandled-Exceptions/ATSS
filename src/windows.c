@@ -739,30 +739,123 @@ static void delay_flight(GtkButton *button, gpointer user_data) {
     gtk_widget_destroy(dialog);
 }
 
-
 // --- Callback Functions ---
 
 // Callback for the "Delay" button
 // Modified to use flight_identifier string
 static void on_delay_flight_clicked(GtkButton *button, gpointer user_data) {
     FlightActionData *action_data = (FlightActionData *)user_data;
+    // Ensure action_data and its members are valid before using them
+    if (!action_data || !action_data->flight_identifier || !action_data->afd || !action_data->afd->db || !action_data->afd->table) {
+         g_warning("Invalid user_data received in on_delay_flight_clicked");
+         return;
+    }
+
     const char *identifier = action_data->flight_identifier;
     TablewithDB *afd = action_data->afd;
-    GtkWidget *dialog = action_data->dialog;
+    // GtkWidget *dialog_from_data = action_data->dialog; // Maybe needed for something else? Renamed to avoid conflict.
+    sqlite3 *the_db = afd->db;
+    GtkWidget *table = afd->table; // Assuming this is the GtkTreeView
 
     printf("Delay button clicked for flight identifier: %s\n", identifier);
 
-    // --- Implement Delay Logic ---
-    // 1. Optionally, open another dialog to get the new departure time.
-    // 2. Update the flight status/time in the database (afd->db) for the flight matching 'identifier'.
-    // 3. Handle potential database errors.
-    // 4. Decide if the action should close the resolution dialog.
-    //    If so: gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT); // Or a custom response
-    //    Or maybe just update the UI element for this flight in the dialog.
-    // --- End of Delay Logic ---
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+    if (!parent_window) {
+        g_warning("Could not get parent window for the dialog!");
+        return; // Or handle error appropriately
+    }
+    // Check if the parent is actually a window
+    if (!GTK_IS_WINDOW(parent_window)) {
+         g_warning("Parent widget is not a GtkWindow!");
+         // Find the actual parent window if necessary, or handle error
+         parent_window = gtk_widget_get_ancestor(GTK_WIDGET(button), GTK_TYPE_WINDOW);
+         if (!parent_window) {
+             g_warning("Could not find ancestor GtkWindow!");
+             return;
+         }
+    }
 
-    // Example: Close dialog after action (can be removed if not desired)
-    // gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+
+    // Create the NEW dialog locally
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Delay Flight",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Update", GTK_RESPONSE_OK,
+                                                     NULL);
+
+    // Check if dialog creation succeeded
+    if (!dialog) {
+        g_critical("Failed to create the dialog window!");
+        return;
+    }
+
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content_area), 10);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0);
+
+    // --- Delay Row ---
+    GtkWidget *hbox_delay = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_delay, FALSE, FALSE, 0);
+
+    GtkWidget *label_delay = gtk_label_new("Enter new time (HHMM):");
+    gtk_widget_set_halign(label_delay, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hbox_delay), label_delay, FALSE, FALSE, 5);
+
+    GtkWidget *entry_delay = gtk_entry_new();
+    gtk_box_pack_start(GTK_BOX(hbox_delay), entry_delay, TRUE, TRUE, 0);
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_delay), "e.g., 1030");
+
+    gtk_widget_set_size_request(dialog, 350, -1); // Often better to let height be automatic
+
+    // Explicitly show the dialog and its contents BEFORE running it
+    gtk_widget_show_all(dialog);
+
+    g_print("Running the dialog...\n"); // Debug print
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+    g_print("Dialog response: %d\n", response); // Debug print
+
+    if (response == GTK_RESPONSE_OK) {
+        const char *delay_text = gtk_entry_get_text(GTK_ENTRY(entry_delay));
+        // Add validation for delay_text (e.g., check format, length) here!
+        int delay_value = atoi(delay_text); // Consider using strtol for better error checking
+
+        g_print("Entered delay text: '%s', integer value: %d\n", delay_text ? delay_text : "(null)", delay_value);
+
+        // Assuming remove_allot and add_allot handle potential NULL from delay_text if empty
+        char err = 0; // Initialize err
+        // IMPORTANT: Ensure remove_allot and add_allot are thread-safe if called from UI thread
+        // and potentially interacting with background operations.
+        remove_allot(identifier, 1, the_db, &err);
+        // Handle potential error from remove_allot based on 'err'
+        add_allot(identifier, delay_text, 1, the_db, &err);
+         // Handle potential error from add_allot based on 'err'
+    }
+
+    // Updating the treeview.
+    // Ensure populate_alloted_table_model is safe to call here (threading?)
+    GtkTreeModel *new_model = populate_alloted_table_model(the_db);
+    if (new_model) { // Check if model creation succeeded
+        // Ensure 'table' is a valid GtkTreeView
+        if (GTK_IS_TREE_VIEW(table)) {
+             gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+             g_object_unref(new_model); // Unref only after setting it
+        } else {
+             g_warning("afd->table is not a GtkTreeView!");
+             g_object_unref(new_model); // Unref if not used
+        }
+    } else {
+        g_warning("Failed to populate new tree model.");
+    }
+
+
+    // Destroy the dialog explicitly AFTER gtk_dialog_run has returned
+    // The GTK_DIALOG_DESTROY_WITH_PARENT flag handles destruction if the parent closes,
+    // but destroying it here ensures it's cleaned up immediately after use.
+    gtk_widget_destroy(dialog);
 }
 
 // Callback for the "Cancel" button
