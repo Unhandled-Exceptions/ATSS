@@ -102,3 +102,55 @@ Iterate through each runway
         yes => break;
         no slot found, switch runway. and check again.
 No runways are free, then say that the only option is to cancel.
+
+
+## Instructions for Using GUI
+
+Make sure gtk3 development packages are installed in your computer:
+For ubuntu based systems:
+```
+sudo apt install libgtk-3-dev
+```
+For Arch:
+```
+sudo pacman -S gtk3
+sudo pacman -S base-devel
+```
+
+Now run the make command, you could optionally do a "make clean" before this:
+```
+make
+```
+> It is suggested to reset the DB once before the transition to start in a clean state
+
+## Resources for development
+
+### Official Docs
+- Overall Docs: https://docs.gtk.org/gtk3/
+- Getting Started Guide (Very Useful !!) : https://docs.gtk.org/gtk3/getting_started.html
+
+### VS Code Integration
+
+> Note: Please make sure that your configuration is not automatically taken from the makefile. If VSCode asks you to do so just say no. If it reads the configuration from makefile, it will ignore the Include Paths completely thus, gtk won't be recognised by vscode.
+
+To get Intellisense support for gtk in VSCode follow this discussion:
+https://www.reddit.com/r/GTK/comments/wc0xw7/setup_gtk3_in_vs_code/
+
+### To get a demo application:
+Install the gtk3 examples and demo package.
+In ubuntu:
+```
+sudo apt install gtk-3-examples
+```
+In Arch (not tested, hopefully will work):
+```
+sudo pacman -S gtk-3-demo
+sudo pacman -S gtk-3-examples
+```
+
+Then run the demo application:
+```
+gtk3-demo
+```
+
+You can press the "Run" button on top left after selecting the demo that you need. You can also view the source code !!
