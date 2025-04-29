@@ -91,3 +91,7 @@ struct allot_cb_pack {
 
 GtkWidget *create_allot_window(sqlite3 *db);
 // Flight Allotment Window - Ends
+
+// Runway Utilization Report - Starts
+GtkWidget *create_report_window(sqlite3 *db);
+// Runway Utilization Report - Ends

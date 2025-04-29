@@ -400,6 +400,7 @@ struct report_data utilization_report(FL *flights, sqlite3 *db, char *err_msg)
         free(utilvars.util96);
     }
 
+    return rtnreport;
 }
 
 int utilization_report_cb(void *utilvars, int argc, char **argv, char **azColName)

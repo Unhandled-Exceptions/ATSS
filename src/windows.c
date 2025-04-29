@@ -818,6 +818,71 @@ GtkWidget *create_allot_window(sqlite3 *db) {
 
 // Flight Allotment Window - Ends
 
+// Runway Utilization Report - Starts
+GtkWidget *create_report_window(sqlite3 *db) {
+    GtkWidget *win_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
 
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
 
+    GtkWidget *title_label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title_label), "<span size=\"large\" weight=\"bold\">Runway Utilization Report</span>");
+    gtk_widget_set_halign(title_label, GTK_ALIGN_CENTER);
+
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+
+    char err_msg[256] = {0};
+    struct report_data reportdat = utilization_report(&flights, db, err_msg);
+
+    for (int i = 0; i < RUNWAYCOUNT; ++i) {
+
+        char* usage_labeltext;
+        asprintf(&usage_labeltext, "Runway No. %d\t Usage time", i + 1);
+        GtkWidget *usage_label = gtk_label_new(usage_labeltext);
+        GtkWidget *usage_entry = gtk_entry_new();
+
+        char* usage_valuetext;
+        asprintf(&usage_valuetext, "%d mins", reportdat.usage_time[i]);
+
+        gtk_editable_set_editable(GTK_EDITABLE(usage_entry), FALSE);
+        gtk_entry_set_text(GTK_ENTRY(usage_entry), usage_valuetext);
+        gtk_widget_set_hexpand(usage_entry, TRUE);
+
+        char* percentage_labeltext;
+        asprintf(&percentage_labeltext, "Utilization", i + 1);
+        GtkWidget *percentage_label = gtk_label_new(percentage_labeltext);
+        GtkWidget *percentage_entry = gtk_entry_new();
+
+        char* percentage_valuetext;
+        int perc = reportdat.usage_time[i] * 100/ 1440;
+        asprintf(&percentage_valuetext, "%d %%", perc);        
+    
+        gtk_editable_set_editable(GTK_EDITABLE(percentage_entry), FALSE);
+        gtk_entry_set_text(GTK_ENTRY(percentage_entry), percentage_valuetext);
+        gtk_widget_set_hexpand(percentage_entry, TRUE);
+
+        gtk_grid_attach(GTK_GRID(grid), usage_label,       0, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), usage_entry,       1, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), percentage_label,  2, i, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), percentage_entry,  3, i, 1, 1);
+
+        free(usage_labeltext);
+        free(usage_valuetext);
+        free(percentage_labeltext);
+        free(percentage_valuetext);
+    }
+
+    gtk_box_pack_start(GTK_BOX(win_box), title_label, FALSE, FALSE, 10);
+    gtk_box_pack_start(GTK_BOX(win_box), grid, FALSE, FALSE, 0);
+
+    return win_box;
+}
+
+// Runway Utilization Report - Ends
 

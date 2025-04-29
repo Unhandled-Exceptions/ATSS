@@ -90,7 +90,7 @@ static void create_main_view(GtkWidget *window){
     gtk_stack_add_named(GTK_STACK(stack), label5, "flight_emergencies");
     gtk_container_child_set(GTK_CONTAINER(stack), label5, "title", "Flight Emergencies", NULL);
 
-    GtkWidget *label7 = gtk_label_new(" Runway Utilisation and Delay Reports Here !!");
+    GtkWidget *label7 = create_report_window(the_db);
     gtk_stack_add_named(GTK_STACK(stack), label7, "reports");
     gtk_container_child_set(GTK_CONTAINER(stack), label7, "title", "Reports", NULL);
 
