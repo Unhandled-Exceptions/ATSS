@@ -90,4 +90,20 @@ typedef struct {
 
 GtkWidget *create_flight_emergencies_window(sqlite3 *db);
 // Flight Emergencies Window - Ends
+
+// Crew Alloter Window - Starts
+enum
+{
+    CA_ALLOTMENT_ID = 0,
+    CA_FLIGHT_ID,
+    CA_AIRLINE,
+    CA_CREW_ID,
+    CA_CREW_NAME,
+    CA_DESIGNATION,
+    CA_NUM_COLS
+};
+
+GtkWidget *create_crew_alloter_window(sqlite3 *db);
+// Crew Alloter Window - End
+
 #endif

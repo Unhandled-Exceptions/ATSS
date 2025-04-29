@@ -866,3 +866,177 @@ GtkWidget *create_flight_emergencies_window(sqlite3 *db){
     return win_box;
 }
 // Flight Emergencies Window - Ends
+
+// Crew Alloter Window - Starts
+
+static GtkTreeModel *populate_crew_allotments_model(sqlite3 *db) {
+    GtkListStore *store = gtk_list_store_new(CA_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeIter iter;
+
+    const char *query =
+        "SELECT ca.allotment_id, ca.flight_id, f.airline, c.crew_id, c.name, c.designation "
+        "FROM crew_allotments ca "
+        "JOIN flights f ON ca.flight_id = f.flight_id "
+        "JOIN crew c ON ca.crew_id = c.crew_id "
+        "ORDER BY ca.flight_id, c.designation, c.name;";
+
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, query, -1, &stmt, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Failed to prepare crew allotment query: %s\n", sqlite3_errmsg(db));
+        return GTK_TREE_MODEL(store);
+    }
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        const char *allot_id = (const char *)sqlite3_column_text(stmt, 0);
+        const char *flight_id = (const char *)sqlite3_column_text(stmt, 1);
+        const char *airline = (const char *)sqlite3_column_text(stmt, 2);
+        const char *crew_id = (const char *)sqlite3_column_text(stmt, 3);
+        const char *crew_name = (const char *)sqlite3_column_text(stmt, 4);
+        const char *designation = (const char *)sqlite3_column_text(stmt, 5);
+
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter,
+                           CA_ALLOTMENT_ID, allot_id ? allot_id : "",
+                           CA_FLIGHT_ID, flight_id ? flight_id : "",
+                           CA_AIRLINE, airline ? airline : "",
+                           CA_CREW_ID, crew_id ? crew_id : "",
+                           CA_CREW_NAME, crew_name ? crew_name : "",
+                           CA_DESIGNATION, designation ? designation : "",
+                           -1);
+    }
+
+    if (rc != SQLITE_DONE) {
+         fprintf(stderr, "Error stepping through crew allotment results: %s\n", sqlite3_errmsg(db));
+    }
+
+    sqlite3_finalize(stmt);
+    return GTK_TREE_MODEL(store);
+}
+
+
+static GtkWidget *create_crew_alloter_table(sqlite3 *db) {
+    GtkWidget *table = gtk_tree_view_new();
+    GtkCellRenderer *renderer;
+
+    char *cols[] = {"AllocID", "Flight ID", "Airline", "Crew ID", "Crew Name", "Designation"};
+
+    for (int i = 0; i < CA_NUM_COLS; i++) {
+        renderer = gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(table), -1, cols[i], renderer, "text", i, NULL);
+    }
+
+    GtkTreeModel *model = populate_crew_allotments_model(db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), model);
+
+    g_object_unref(model);
+
+    return table;
+}
+
+
+static void allot_crew_button_cb(GtkButton *button, gpointer user_data) {
+    TablewithDB *afd = (TablewithDB *)user_data;
+    sqlite3 *db = afd->db;
+    GtkWidget *table = afd->table;
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    int success_count = 0;
+    int fail_count = 0;
+    char *err_msg = NULL;
+
+    if (flights.size == 0 || crew_list.size == 0) {
+         g_warning("Flight or Crew data not loaded. Cannot allot crew.");
+
+         GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(parent_window), 
+                                                      GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                      GTK_MESSAGE_ERROR,
+                                                      GTK_BUTTONS_CLOSE,
+                                                      "Error: Flight or Crew data not loaded.\nPlease load data first (e.g., by visiting respective tabs).");
+         gtk_dialog_run(GTK_DIALOG(error_dialog));
+         gtk_widget_destroy(error_dialog);
+         return;
+    }
+
+    int result = gui_allot_crew_for_flights(&flights, &crew_list, db, &success_count, &fail_count, &err_msg);
+
+    GString *summary = g_string_new(NULL);
+    if (result == 0) {
+        g_string_append_printf(summary, "Crew Allotment Completed.\n\nFlights successfully assigned: %d\nFlights failed assignment: %d",
+                               success_count, fail_count);
+    } else {
+        g_string_append_printf(summary, "Crew Allotment encountered errors.\n\nFlights successfully assigned: %d\nFlights failed assignment: %d\n\nError details: %s",
+                               success_count, fail_count, (err_msg ? err_msg : "Unknown error"));
+    }
+
+    GtkMessageType message_type = (result == 0) ? GTK_MESSAGE_INFO : GTK_MESSAGE_WARNING;
+    GtkWidget *summary_dialog = gtk_message_dialog_new(GTK_WINDOW(parent_window),
+                                                       GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                       message_type,
+                                                       GTK_BUTTONS_OK,
+                                                       "%s", summary->str);
+    gtk_window_set_title(GTK_WINDOW(summary_dialog), "Allotment Summary");
+    gtk_dialog_run(GTK_DIALOG(summary_dialog));
+    gtk_widget_destroy(summary_dialog);
+
+    g_string_free(summary, TRUE);
+    if (err_msg) {
+         g_free(err_msg);
+    }
+
+    GtkTreeModel *new_model = populate_crew_allotments_model(db);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(table), new_model);
+    g_object_unref(new_model);
+
+}
+
+GtkWidget *create_crew_alloter_window(sqlite3 *db){
+
+    GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
+
+    int margin = 15;
+    gtk_widget_set_margin_start(win_box, margin);
+    gtk_widget_set_margin_end(win_box, margin);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *frame = gtk_frame_new ("Actions");
+
+    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
+
+    gtk_container_add (GTK_CONTAINER (frame), bbox);
+    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10);
+
+    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
+    gtk_box_set_spacing (GTK_BOX (bbox), 10);
+
+    GtkWidget *allot_crew_btn = gtk_button_new_with_label("Allot Crew");
+
+    gtk_container_add (GTK_CONTAINER (bbox), allot_crew_btn);
+
+    // The Table !!
+
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN);
+
+    GtkWidget *table = create_crew_alloter_table(db);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    TablewithDB *afd = g_malloc(sizeof(TablewithDB));
+    afd->db = db;
+    afd->table = table;
+
+    g_signal_connect (allot_crew_btn, "clicked", G_CALLBACK (allot_crew_button_cb), afd);
+
+    g_object_set_data_full(G_OBJECT(win_box), "afd_data_crew_alloter", afd, g_free);
+    
+    gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
+
+
+    return win_box;
+
+}
+// Crew Alloter Window - Ends
