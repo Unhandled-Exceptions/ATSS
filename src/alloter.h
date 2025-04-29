@@ -9,6 +9,8 @@
 #include <sqlite3.h>
 #include <stddef.h>
 
+#define RUNWAYCOUNT 3
+
 typedef struct alloted_data {
     int allot_id;
     char flight_id[10];
@@ -21,12 +23,14 @@ struct utildata {
     int *util_time;
 };
 
+struct report_data {
+    int usage_time[RUNWAYCOUNT];
+};
+
 struct delaydata {
     char delaypile[50][10];
     int delaycount;
 };
-
-#define RUNWAYCOUNT 3
 
 void view_allots(sqlite3 *db, char *err_msg);
 int view_allots_cb(void *NotUsed, int argc, char **argv, char **azColName);
@@ -42,6 +46,7 @@ int timedifference(const char *time1, const char *time2);
 AD get_last_alloted_flight(FL *flights, int runway, sqlite3 *db, char *err_msg);
 int get_last_alloted_flight_cb(void *la, int argc, char **argv, char **azColName);
 
-void utilization_report(FL *flights, sqlite3 *db, char *err_msg);
+struct report_data utilization_report(FL *flights, sqlite3 *db, char *err_msg);
+void tui_utilization_report(FL *flights, sqlite3 *db, char *err_msg);
 int utilization_report_cb(void *utilvars, int argc, char **argv, char **azColName);
 #endif

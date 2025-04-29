@@ -365,12 +365,9 @@ void tui_allotment(FL *flights, sqlite3 *db, char *err_msg)
     pauseScreen();
 }
 
-void utilization_report(FL *flights, sqlite3 *db, char *err_msg)
+struct report_data utilization_report(FL *flights, sqlite3 *db, char *err_msg)
 {
-    clear_screen();
-    printf("=========================================\n");
-    printf("            Runway Utilization           \n");
-    printf("=========================================\n\n");
+    struct report_data rtnreport;
 
     for (int r = 1; r <= RUNWAYCOUNT; r++) {
         // int util96[96]; // 24 hrs * 4 quarters of 15 mins, for data viz
@@ -386,8 +383,10 @@ void utilization_report(FL *flights, sqlite3 *db, char *err_msg)
 
         int rc = sqlite3_exec(db, query, utilization_report_cb, &utilvars, &err_msg);
 
+        rtnreport.usage_time[r-1] = util_time;
         int util_perc = (util_time * 100) / 1440;
         printf("Runway #%d is used for %d minutes -> %d%% Usage.\n", r, util_time, util_perc);
+        // Utilization ASCII Visualisation.
         printf("[");
         for (int i = 0; i < 96; i++) {
             if (utilvars.util96[i] == 1) {
@@ -401,7 +400,6 @@ void utilization_report(FL *flights, sqlite3 *db, char *err_msg)
         free(utilvars.util96);
     }
 
-    pauseScreen();
 }
 
 int utilization_report_cb(void *utilvars, int argc, char **argv, char **azColName)
@@ -429,4 +427,17 @@ int utilization_report_cb(void *utilvars, int argc, char **argv, char **azColNam
         end_interval += 15;
     }
     return 0;
+}
+
+void tui_utilization_report(FL *flights, sqlite3 *db, char *err_msg)
+{
+    clear_screen();
+    fflush(stdout);
+    printf("=========================================\n");
+    printf("            Runway Utilization           \n");
+    printf("=========================================\n\n");
+
+    utilization_report(flights, db, err_msg);
+
+    pauseScreen();
 }

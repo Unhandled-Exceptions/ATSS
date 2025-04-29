@@ -140,7 +140,7 @@ int main(int argc, char const *argv[]) {
                 }
                break;
             case 12:
-                utilization_report(&flights, the_db, err_msg);
+                tui_utilization_report(&flights, the_db, err_msg);
                 break;
            case 13:
                free_flight_list(&flights);
