@@ -47,6 +47,7 @@ ATSS/
 ## TODO
 - [x] Make the allot button work
 - [ ] Add delay handling GUI
+- [ ] Add status field to the allot table.
 
 
 ## Useful commands

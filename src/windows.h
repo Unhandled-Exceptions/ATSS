@@ -71,7 +71,12 @@ GtkWidget *create_crew_info_window(sqlite3 *db);
 
 // Flight Allotment Window - Starts
 
-extern char delaypile[50][10];
+typedef struct {
+  const char* flight_identifier; // e.g., "BA123" from delaypile
+  TablewithDB *afd;           // Contains DB connection and main table
+  GtkWidget *dialog;          // The dialog window itself
+  GtkWidget *row_widget;      // The GtkBox representing the flight row in the dialog
+} FlightActionData;
 
 enum
 {
