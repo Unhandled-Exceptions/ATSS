@@ -67,4 +67,27 @@ enum
 
 GtkWidget *create_crew_info_window(sqlite3 *db);
 // Crew Information Window - Ends
+
+// Flight Emergencies Window - Starts
+enum
+{
+  FE_FLIGHT_ID = 0,
+  FE_EMERGENCY_TYPE,
+  FE_NUM_COLS
+};
+
+typedef struct {
+  GtkWidget *entry_id;
+  GtkWidget *label_fetched_airline; // Label to display fetched airline
+  GtkWidget *label_fetched_origin;  // Label to display fetched origin
+  GtkWidget *label_fetched_dest;    // Label to display fetched destination
+  GtkWidget *radio_group_box;      // Container for radio buttons
+  GSList *radio_group;            // Head of the radio button group list
+  FD *fetched_flight;             // Pointer to the fetched flight data (or NULL)
+  sqlite3 *db;                    // Database connection passed from main window
+  GtkWidget *main_emergencies_table; // The table in the main window to refresh
+} DeclareEmergencyDialogData;
+
+GtkWidget *create_flight_emergencies_window(sqlite3 *db);
+// Flight Emergencies Window - Ends
 #endif

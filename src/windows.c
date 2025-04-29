@@ -535,7 +535,7 @@ static GtkTreeModel *populate_crew_info_model (){
     return GTK_TREE_MODEL (store);
 }
 
-static GtkWidget *create_crew_info_table (void){
+static GtkWidget *create_crew_info_table (){
     GtkWidget *table = gtk_tree_view_new();
     GtkCellRenderer *renderer;
 
@@ -588,3 +588,281 @@ GtkWidget *create_crew_info_window(sqlite3 *db){
     return win_box;
 }
 // Crew Information Window - Ends
+
+//  Flight Emergencies Window - Starts
+
+static GtkTreeModel *populate_flight_emergencies_model (sqlite3 *db){
+    GtkListStore *store = gtk_list_store_new(FE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING);
+
+    GtkTreeIter iter;
+
+    const char *sql = "SELECT flight_id, emergency_type FROM flight_emergencies ORDER BY flight_id;";
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Failed to fetch flight emergencies: %s\n", sqlite3_errmsg(db));
+    }
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        const char *flight_id = sqlite3_column_text(stmt, 0);
+        const char *emergency_type = sqlite3_column_text(stmt, 1);
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter, FE_FLIGHT_ID, flight_id, FE_EMERGENCY_TYPE, emergency_type, -1);
+    }
+
+    sqlite3_finalize(stmt);
+
+    return GTK_TREE_MODEL (store);
+}
+
+static GtkWidget *create_flight_emergencies_table (sqlite3 *db){
+    GtkWidget *table = gtk_tree_view_new();
+    GtkCellRenderer *renderer;
+
+    char *cols[] = {"Flight ID                      ", "Emergency Type"};
+
+    for (int i = 0; i < FE_NUM_COLS; i++){
+        renderer = gtk_cell_renderer_text_new();
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW (table), -1, cols[i], renderer,"text", i, NULL);
+    }
+
+    GtkTreeModel *model = populate_flight_emergencies_model(db);
+    gtk_tree_view_set_model (GTK_TREE_VIEW (table), model);
+
+    g_object_unref (model);
+
+    return table;
+}
+
+static void fetch_flight_for_emergency_cb(GtkButton *button, gpointer user_data) {
+    DeclareEmergencyDialogData *dialog_data = (DeclareEmergencyDialogData *)user_data;
+
+    const char *flight_id = gtk_entry_get_text(GTK_ENTRY(dialog_data->entry_id));
+
+    if (g_utf8_strlen(flight_id, -1) == 0) {
+        g_warning("Please enter a Flight ID to fetch details.");
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_airline), "-");
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_origin), "-");
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_dest), "-");
+        dialog_data->fetched_flight = NULL;
+        return;
+    }
+
+    // Use the global 'flights' list (ensure it's loaded)
+    FD* found_flight = find_flight_by_id(flight_id, &flights);
+
+    if (found_flight) {
+        dialog_data->fetched_flight = found_flight; // Store pointer to the flight
+        // Update labels in the dialog
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_airline), found_flight->airline);
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_origin), found_flight->origin);
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_dest), found_flight->destination);
+        g_print("Fetched details for: %s\n", flight_id);
+
+    } else {
+        g_warning("Flight ID '%s' not found.", flight_id);
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_airline), "Not Found");
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_origin), "-");
+        gtk_label_set_text(GTK_LABEL(dialog_data->label_fetched_dest), "-");
+        dialog_data->fetched_flight = NULL;
+    }
+}
+
+static void declare_emergency_cb(GtkButton *button, gpointer user_data) {
+    TablewithDB *afd = (TablewithDB *)user_data;
+    GtkWidget *parent_window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Declare Flight Emergency",
+                                                     GTK_WINDOW(parent_window),
+                                                     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+                                                     "_Cancel", GTK_RESPONSE_CANCEL,
+                                                     "_Declare", GTK_RESPONSE_OK,
+                                                     NULL);
+    gtk_widget_set_size_request(dialog, 450, 400); // Adjusted size
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
+    gtk_box_pack_start(GTK_BOX(content_area), vbox, TRUE, TRUE, 0);
+
+    // --- Flight ID Input and Fetch ---
+    GtkWidget *id_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    GtkWidget *label_id = gtk_label_new("Flight ID:");
+    GtkWidget *entry_id = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_id), "Enter ID and Fetch");
+    GtkWidget *fetch_button = gtk_button_new_with_label("Fetch Details");
+    gtk_widget_set_hexpand(entry_id, TRUE);
+    gtk_box_pack_start(GTK_BOX(id_hbox), label_id, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(id_hbox), entry_id, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(id_hbox), fetch_button, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), id_hbox, FALSE, FALSE, 5);
+
+    GtkWidget *details_frame = gtk_frame_new("Flight Details");
+    gtk_frame_set_label_align(GTK_FRAME(details_frame), 0.02, 0.5); 
+    gtk_box_pack_start(GTK_BOX(vbox), details_frame, FALSE, FALSE, 5);
+
+    GtkWidget *details_grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(details_grid), 5);
+    gtk_grid_set_column_spacing(GTK_GRID(details_grid), 10);
+    gtk_container_set_border_width(GTK_CONTAINER(details_grid), 10);
+    gtk_container_add(GTK_CONTAINER(details_frame), details_grid);
+
+    gtk_grid_attach(GTK_GRID(details_grid), gtk_label_new("Airline:"), 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(details_grid), gtk_label_new("Origin:"), 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(details_grid), gtk_label_new("Destination:"), 0, 2, 1, 1);
+
+    GtkWidget *label_airline_val = gtk_label_new("-");
+    GtkWidget *label_origin_val = gtk_label_new("-");
+    GtkWidget *label_dest_val = gtk_label_new("-");
+    gtk_widget_set_halign(label_airline_val, GTK_ALIGN_START);
+    gtk_widget_set_halign(label_origin_val, GTK_ALIGN_START);
+    gtk_widget_set_halign(label_dest_val, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(details_grid), label_airline_val, 1, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(details_grid), label_origin_val, 1, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(details_grid), label_dest_val, 1, 2, 1, 1);
+
+
+    GtkWidget *emergency_frame = gtk_frame_new("Select Emergency Type");
+     gtk_frame_set_label_align(GTK_FRAME(emergency_frame), 0.02, 0.5);
+    gtk_box_pack_start(GTK_BOX(vbox), emergency_frame, FALSE, FALSE, 5);
+
+    GtkWidget *radio_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_set_border_width(GTK_CONTAINER(radio_box), 10);
+    gtk_container_add(GTK_CONTAINER(emergency_frame), radio_box);
+
+    const char *emergency_types[] = {"Weather Issue", "Technical Issue", "Medical Emergency", "Security Concern", "Other Emergency"};
+    int num_emergency_types = sizeof(emergency_types) / sizeof(emergency_types[0]);
+
+    GtkWidget *radio_button = NULL;
+    GSList *radio_group_list = NULL;
+    for (int i = 0; i < num_emergency_types; ++i) {
+        radio_button = gtk_radio_button_new_with_label(radio_group_list, emergency_types[i]);
+        gtk_box_pack_start(GTK_BOX(radio_box), radio_button, FALSE, FALSE, 0);
+        radio_group_list = gtk_radio_button_get_group(GTK_RADIO_BUTTON(radio_button));
+    }
+
+    DeclareEmergencyDialogData *dialog_data = g_malloc(sizeof(DeclareEmergencyDialogData));
+    dialog_data->entry_id = entry_id;
+    dialog_data->label_fetched_airline = label_airline_val;
+    dialog_data->label_fetched_origin = label_origin_val;
+    dialog_data->label_fetched_dest = label_dest_val;
+    dialog_data->radio_group_box = radio_box;
+    dialog_data->radio_group = radio_group_list;
+    dialog_data->fetched_flight = NULL;
+    dialog_data->db = afd->db;
+    dialog_data->main_emergencies_table = afd->table;
+
+    g_signal_connect(fetch_button, "clicked", G_CALLBACK(fetch_flight_for_emergency_cb), dialog_data);
+
+    g_object_set_data_full(G_OBJECT(dialog), "dialog_data", dialog_data, g_free);
+
+    gtk_widget_show_all(dialog);
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        DeclareEmergencyDialogData *d_data = g_object_get_data(G_OBJECT(dialog), "dialog_data");
+
+        if (!d_data->fetched_flight) {
+            g_warning("Cannot declare emergency: No valid flight details fetched.");
+        } else {
+            int selected_choice = -1;
+            const char *selected_emergency_text = NULL;
+            GSList *list_item = d_data->radio_group;
+            int current_choice = 1;
+
+            while (list_item) {
+                GtkWidget *current_radio = GTK_WIDGET(list_item->data);
+                if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(current_radio))) {
+                    selected_choice = current_choice;
+                    selected_emergency_text = gtk_button_get_label(GTK_BUTTON(current_radio));
+                    break;
+                }
+                list_item = g_slist_next(list_item);
+                current_choice++;
+            }
+
+            if (selected_choice == -1) {
+                g_warning("Cannot declare emergency: Please select an emergency type.");
+            } else {
+                g_print("Declaring emergency for flight %s, type: %s (Choice %d)\n",
+                        d_data->fetched_flight->flight_id,
+                        selected_emergency_text,
+                        selected_choice);
+
+                int result = declare_flight_emergency(d_data->fetched_flight,
+                                                     &flights, // Pass the global flights list
+                                                     selected_choice,
+                                                     d_data->db);
+
+                if (result == 0) {
+                    g_print("Emergency declared successfully for %s.\n", d_data->fetched_flight->flight_id);
+                    GtkTreeModel *new_model = populate_flight_emergencies_model(d_data->db);
+                    gtk_tree_view_set_model(GTK_TREE_VIEW(d_data->main_emergencies_table), new_model);
+                    g_object_unref(new_model);
+
+                    GtkTreeModel *flights_model = populate_flights_info_model();
+                    
+                    g_object_unref(flights_model);
+
+
+                } else if (result == 1) {
+                     g_message("Flight %s was already at emergency priority.", d_data->fetched_flight->flight_id);
+                }
+                 else {
+                    g_warning("Failed to declare emergency for flight %s (Error code: %d). Check console/logs.", d_data->fetched_flight->flight_id, result);
+                }
+            }
+        }
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+GtkWidget *create_flight_emergencies_window(sqlite3 *db){
+    GtkWidget *win_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);;
+
+    int margin = 40;
+    gtk_widget_set_margin_start(win_box, margin+80);
+    gtk_widget_set_margin_end(win_box, margin+80);
+    gtk_widget_set_margin_top(win_box, margin);
+    gtk_widget_set_margin_bottom(win_box, margin);
+
+    GtkWidget *frame = gtk_frame_new ("Actions");
+
+    GtkWidget *bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+    gtk_container_set_border_width (GTK_CONTAINER (bbox), 10);
+
+    gtk_container_add (GTK_CONTAINER (frame), bbox);
+    gtk_box_pack_start(GTK_BOX(win_box), frame, FALSE, FALSE, 10);
+
+    gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_END);
+    gtk_box_set_spacing (GTK_BOX (bbox), 10);
+
+    GtkWidget *declare_emergency_btn = gtk_button_new_with_label("Declare Flight Emergency");
+
+    gtk_container_add (GTK_CONTAINER (bbox), declare_emergency_btn);
+
+    // The Table !!
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW(scrolled_window), GTK_SHADOW_IN);
+
+    GtkWidget *table = create_flight_emergencies_table(db);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), table);
+
+    TablewithDB *afd = g_malloc(sizeof(TablewithDB));
+    afd->db = db;
+    afd->table = table; 
+
+    g_signal_connect (declare_emergency_btn, "clicked", G_CALLBACK (declare_emergency_cb), afd);
+
+    g_object_set_data_full(G_OBJECT(win_box), "afd_data", afd, g_free);
+
+
+    gtk_box_pack_start(GTK_BOX(win_box), scrolled_window, TRUE, TRUE, 0);
+
+    return win_box;
+}
+// Flight Emergencies Window - Ends
