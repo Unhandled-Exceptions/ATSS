@@ -432,7 +432,8 @@ void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
         get_int_input("\nEnter event type number: ", &event_choice);
         if (event_choice >= 1 && event_choice <= 5) {
             break;
-        } else {
+        } 
+        else {
             printf("Invalid choice. Please enter a number between 1 and 5.\n");
         }
     }
@@ -440,60 +441,9 @@ void handle_realtime_event(FL *flights, sqlite3 *db, char *err_msg) {
     get_string_input("Declare this flight as EMERGENCY (Priority 1)? (y/n): ", confirmation, sizeof(confirmation));
 
     if (strlen(confirmation) > 0 && toupper(confirmation[0]) == 'Y') {
-        if (flight_to_update->priority_level == 1) {
-            printf("\nFlight '%s' is already at Emergency Priority (1).\n", flight_id_to_update);
-            // Optionally, still record the event type even if priority doesn't change
-        } else {
-            printf("\nUpdating flight '%s' to Emergency Priority (1)...\n", flight_id_to_update);
-
-            // Create a copy to update priority before calling update_flight_data
-            FD updated_flight = *flight_to_update;
-            updated_flight.priority_level = 1;
-
-            // Call update_flight_data to handle the priority change in memory and DB
-            if (update_flight_data(&updated_flight, flights, db, err_msg) != 0) {
-                fprintf(stderr, "Failed to update flight priority in database.\n");
-                // err_msg should be set by update_flight_data
-                sqlite3_free(err_msg); // Free error message if allocated by update_flight_data
-                err_msg = NULL;
-            } else {
-                printf("Flight '%s' priority updated successfully.\n", flight_id_to_update);
-                // Proceed to record the emergency event type
-
-                const char *emergency_types[] = {
-                    "Weather Issue", "Technical Issue", "Medical Emergency", "Security Concern", "Other Emergency"
-                };
-
-                // Ensure event_choice is within bounds (already validated, but good practice)
-                if (event_choice >= 1 && event_choice <= 5) {
-                    const char *event_type = emergency_types[event_choice - 1];
-
-                    // *** MODIFICATION START: Use sqlite3_mprintf ***
-                    char *sql_template = "INSERT INTO flight_emergencies (flight_id, emergency_type) VALUES (%Q, %Q);";
-                    char *sql = sqlite3_mprintf(sql_template, updated_flight.flight_id, event_type);
-
-                    if (sql == NULL) {
-                        fprintf(stderr, "Failed to allocate memory for emergency insert SQL query.\n");
-                    } else {
-                        // Use sqlite3_exec for simple INSERT, or prepare/step/finalize for more control
-                        int rc_exec = sqlite3_exec(db, sql, 0, 0, &err_msg); // Use exec here
-
-                        if (rc_exec != SQLITE_OK) {
-                            fprintf(stderr, "Failed to insert emergency event into database: %s\n", err_msg);
-                            sqlite3_free(err_msg); // Free error message allocated by sqlite3_exec
-                            err_msg = NULL;
-                        } else {
-                            printf("Emergency event ('%s') recorded successfully for flight %s.\n", event_type, updated_flight.flight_id);
-                        }
-                        sqlite3_free(sql); // Free the memory allocated by sqlite3_mprintf
-                    }
-                    // *** MODIFICATION END ***
-                } else {
-                    fprintf(stderr, "Internal error: Invalid event choice after validation.\n");
-                }
-            }
-        }
-    } else {
+        declare_flight_emergency(flight_to_update, flights, event_choice, db);   
+    } 
+    else {
         printf("\nPriority update cancelled. Emergency event not recorded.\n");
     }
 

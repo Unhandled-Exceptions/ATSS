@@ -38,5 +38,6 @@ int insert_flight_data(FD *flight, FL *flights, sqlite3 *db, char *err_msg);
 int update_flight_data(FD *flight, FL *flights, sqlite3 *db, char *err_msg);
 int delete_flight_data(char *flight_id, FL *flights, sqlite3 *db, char *err_msg);
 FD* find_flight_by_id(const char *flight_id, FL *flights);
+int declare_flight_emergency(FD *flight, FL *flights, int event_choice,sqlite3 *db);
 
 #endif
