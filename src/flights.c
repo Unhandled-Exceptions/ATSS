@@ -194,3 +194,51 @@ FD* find_flight_by_id(const char *flight_id, FL *flights) {
     }
     return NULL;
 }
+
+int declare_flight_emergency(FD *flight, FL *flights, int event_choice,sqlite3 *db) {
+    if (flight->priority_level == 1) {
+        printf("\nFlight '%s' is already at Emergency Priority (1).\n", flight->flight_id);
+        return 1;
+    }
+    else{
+        printf("\nUpdating flight '%s' to Emergency Priority (1)...\n", flight->flight_id);
+    }
+    flight->priority_level = 1;
+    char *err_msg = NULL;
+    if (update_flight_data(flight, flights, db, err_msg) != 0){
+        fprintf(stderr, "Failed to update flight priority in database.\n");
+        sqlite3_free(err_msg);
+        err_msg = NULL;
+        return 2;
+    }
+    else{
+        printf("Flight '%s' priority updated successfully.\n", flight->flight_id);
+        const char *emergency_types[] = {"Weather Issue", "Technical Issue", "Medical Emergency", "Security Concern", "Other Emergency"};
+        if (event_choice >= 1 && event_choice <= 5) {
+            const char *event_type = emergency_types[event_choice - 1];
+
+            char *sql_template = "INSERT INTO flight_emergencies (flight_id, emergency_type) VALUES (%Q, %Q);";
+            char *sql = sqlite3_mprintf(sql_template, flight->flight_id, event_type);
+
+            if (sql == NULL) {
+                fprintf(stderr, "Failed to allocate memory for emergency insert SQL query.\n");
+            } else {
+
+                int rc_exec = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+                if (rc_exec != SQLITE_OK) {
+                    fprintf(stderr, "Failed to insert emergency event into database: %s\n", err_msg);
+                    sqlite3_free(err_msg);
+                    err_msg = NULL;
+                } else {
+                    printf("Emergency event ('%s') recorded successfully for flight %s.\n", event_type, flight->flight_id);
+                }
+                sqlite3_free(sql);
+            }
+        } else {
+            fprintf(stderr, "Internal error: Invalid event choice after validation.\n");
+            return 3;
+        }
+    }
+    return 0;
+}
