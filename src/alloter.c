@@ -357,7 +357,8 @@ void tui_allotment(FL *flights, sqlite3 *db, char *err_msg)
             fflush(stdin);
         }
         printf("Conflicts resolved!");
-        scanf("%c"); // Absorber of \n;
+        char c;
+        scanf("%c", &c); // Absorber of \n;
         fflush(stdout);
         fflush(stdin);
     }
