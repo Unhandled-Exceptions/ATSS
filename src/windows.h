@@ -137,5 +137,13 @@ GtkWidget *create_allot_window(sqlite3 *db);
 // Flight Allotment Window - Ends
 
 // Runway Utilization Report - Starts
+
+typedef struct {
+  sqlite3 *db;
+  GtkWidget *usage_entries[RUNWAYCOUNT];
+  GtkWidget *percentage_entries[RUNWAYCOUNT];
+  FL *flights_data;
+} ReportWidgetsData;
+
 GtkWidget *create_report_window(sqlite3 *db);
 // Runway Utilization Report - Ends

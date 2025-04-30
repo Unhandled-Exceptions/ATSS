@@ -13,7 +13,7 @@ chmod +x data_ref/db_from_csv.py scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
 ```
 
-To reset the db.
+To reset the db to busy test case.
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh

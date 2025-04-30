@@ -1110,6 +1110,44 @@ GtkWidget *create_allot_window(sqlite3 *db) {
 // Flight Allotment Window - Ends
 
 // Runway Utilization Report - Starts
+static void on_refresh_button_clicked(GtkButton *button, gpointer user_data) {
+    ReportWidgetsData *data = (ReportWidgetsData *)user_data;
+    char err_msg[256] = {0};
+
+    // Call the report function again to get updated data
+    // Pass data->flights_data if utilization_report needs it
+    struct report_data new_report_dat = utilization_report(data->flights_data, data->db, err_msg);
+
+    if (strlen(err_msg) > 0) {
+        // Handle error - you might want to display this in a label or dialog
+        g_printerr("Error generating report: %s\n", err_msg);
+        // Optionally, update a status label in the window
+    } else {
+        // Update the text in each entry widget
+        for (int i = 0; i < RUNWAYCOUNT; ++i) {
+            char *usage_valuetext;
+            asprintf(&usage_valuetext, "%d mins", new_report_dat.usage_time[i]);
+            gtk_entry_set_text(GTK_ENTRY(data->usage_entries[i]), usage_valuetext);
+            free(usage_valuetext); // asprintf allocates, so we must free
+
+            char *percentage_valuetext;
+            // Calculate percentage (assuming 1440 mins in a day as before)
+            int perc = (new_report_dat.usage_time[i] * 100) / 1440;
+            asprintf(&percentage_valuetext, "%d %%", perc);
+            gtk_entry_set_text(GTK_ENTRY(data->percentage_entries[i]), percentage_valuetext);
+            free(percentage_valuetext); // asprintf allocates, so we must free
+        }
+    }
+}
+
+// --- Function to free the allocated data structure when the window is destroyed ---
+static void free_report_widgets_data(gpointer user_data) {
+    ReportWidgetsData *data = (ReportWidgetsData *)user_data;
+    g_free(data); // Free the struct itself
+    g_print("ReportWidgetsData freed.\n"); // Optional debug print
+}
+
+// --- Modified create_report_window function ---
 GtkWidget *create_report_window(sqlite3 *db) {
     GtkWidget *win_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 15);
 
@@ -1128,53 +1166,84 @@ GtkWidget *create_report_window(sqlite3 *db) {
     gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
     gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
 
+    // --- Allocate the data structure to pass to the callback ---
+    ReportWidgetsData *report_data_widgets = g_new(ReportWidgetsData, 1);
+    report_data_widgets->db = db;
+    report_data_widgets->flights_data = &flights; // Set this to your actual flights data
+
+    // --- Get initial report data ---
     char err_msg[256] = {0};
-    struct report_data reportdat = utilization_report(&flights, db, err_msg);
+    struct report_data reportdat = utilization_report(report_data_widgets->flights_data, db, err_msg);
 
+    if (strlen(err_msg) > 0) {
+         g_printerr("Initial error generating report: %s\n", err_msg);
+         // Handle initial error display if needed
+    }
+
+
+    // --- Create and populate widgets, storing entry pointers ---
     for (int i = 0; i < RUNWAYCOUNT; ++i) {
-
         char* usage_labeltext;
         asprintf(&usage_labeltext, "Runway No. %d\t Usage time", i + 1);
         GtkWidget *usage_label = gtk_label_new(usage_labeltext);
-        GtkWidget *usage_entry = gtk_entry_new();
+
+        // Store pointer to this entry in our data structure
+        report_data_widgets->usage_entries[i] = gtk_entry_new();
+        GtkWidget *usage_entry = report_data_widgets->usage_entries[i];
+
 
         char* usage_valuetext;
         asprintf(&usage_valuetext, "%d mins", reportdat.usage_time[i]);
-
         gtk_editable_set_editable(GTK_EDITABLE(usage_entry), FALSE);
         gtk_entry_set_text(GTK_ENTRY(usage_entry), usage_valuetext);
         gtk_widget_set_hexpand(usage_entry, TRUE);
+        free(usage_valuetext); // asprintf allocated
 
         char* percentage_labeltext;
-        asprintf(&percentage_labeltext, "Utilization", i + 1);
+        asprintf(&percentage_labeltext, "Utilization"); // Removed i + 1 as it's the same label
         GtkWidget *percentage_label = gtk_label_new(percentage_labeltext);
-        GtkWidget *percentage_entry = gtk_entry_new();
+
+        // Store pointer to this entry in our data structure
+        report_data_widgets->percentage_entries[i] = gtk_entry_new();
+        GtkWidget *percentage_entry = report_data_widgets->percentage_entries[i];
+
 
         char* percentage_valuetext;
-        int perc = reportdat.usage_time[i] * 100/ 1440;
-        asprintf(&percentage_valuetext, "%d %%", perc);        
-    
+        int perc = reportdat.usage_time[i] * 100/ 1440; // Assuming 1440 minutes in a day
+        asprintf(&percentage_valuetext, "%d %%", perc);
         gtk_editable_set_editable(GTK_EDITABLE(percentage_entry), FALSE);
         gtk_entry_set_text(GTK_ENTRY(percentage_entry), percentage_valuetext);
         gtk_widget_set_hexpand(percentage_entry, TRUE);
+        free(percentage_valuetext); // asprintf allocated
 
         gtk_grid_attach(GTK_GRID(grid), usage_label,       0, i, 1, 1);
         gtk_grid_attach(GTK_GRID(grid), usage_entry,       1, i, 1, 1);
         gtk_grid_attach(GTK_GRID(grid), percentage_label,  2, i, 1, 1);
         gtk_grid_attach(GTK_GRID(grid), percentage_entry,  3, i, 1, 1);
 
-        free(usage_labeltext);
-        free(usage_valuetext);
-        free(percentage_labeltext);
-        free(percentage_valuetext);
+        free(usage_labeltext); // asprintf allocated
+        free(percentage_labeltext); // asprintf allocated
     }
 
+    // --- Create the Refresh button ---
+    GtkWidget *refresh_button = gtk_button_new_with_label("Refresh Report");
+
+    int button_padding = 300;
+    gtk_widget_set_margin_start(refresh_button, button_padding);
+    gtk_widget_set_margin_end(refresh_button, button_padding);
+    // gtk_widget_set_margin_top(refresh_button, button_padding);
+    // gtk_widget_set_margin_bottom(refresh_button, button_padding);
+
+    g_signal_connect(refresh_button, "clicked", G_CALLBACK(on_refresh_button_clicked), report_data_widgets);
+    g_signal_connect(win_box, "destroy", G_CALLBACK(free_report_widgets_data), report_data_widgets);
+
+    // --- Pack widgets into the main box ---
     gtk_box_pack_start(GTK_BOX(win_box), title_label, FALSE, FALSE, 10);
     gtk_box_pack_start(GTK_BOX(win_box), grid, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(win_box), refresh_button, FALSE, FALSE, 10); // Pack the button
 
     return win_box;
 }
-
 // Runway Utilization Report - Ends
 
 
