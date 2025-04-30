@@ -5,6 +5,7 @@
 Clone the repo, and run
 ```
 make && ./bin/atss atss
+Ideal Test Cases
 ```
 If atss.db doesn't exist,
 ```
@@ -12,7 +13,11 @@ chmod +x data_ref/db_from_csv.py scripts/create_atss_db.sh
 ./scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
 ```
-
+```
+rm data/atss.db
+./scripts/create_atss_db.sh
+./data_ref/db_from_csv.py data/flights_big.csv data/crew_big.csv data/atss.db
+```
 To reset the db to busy test case.
 ```
 rm data/atss.db
@@ -23,8 +28,9 @@ or
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh
-./data_ref/db_from_csv.py data/flights_big.csv data/crew_big.csv data/atss.db
+./data_ref/db_from_csv.py data/flights_busy_big.csv data/crew_small.csv data/atss.db
 ```
+
 ## Project Directory Structure:
 
 ~~~
