@@ -1,30 +1,112 @@
-# Air Traffic Scheduling System
+# Air Traffic Scheduling System - ATSS
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-## Running
+A Simple Air Traffic Scheduling simulation System written in C. Has both GUI and CLI versions.
 
-Clone the repo, and run
+## Screenshots
+### CLI
+
+#### Main Menu
+![Main Menu](screenshots/tui-menu.png)
+#### Flight Allocation Report
+![Alloc Report](screenshots/tui-report.png)
+
+### GUI
+
+#### Flights Info
+![Flights Info](screenshots/flights_info.png)
+
+#### Add Flight
+![Add Flight](screenshots/flights_add.png)
+
+#### Update Flights
+![Update Flights](screenshots/flights_update.png)
+
+#### Delete Flight
+![Delete Flight](screenshots/flights_delete.png)
+
+#### Crew Info
+![Crew Info](screenshots/crew_info.png)
+
+#### Flight Alloter
+![Flight Alloter](screenshots/flight_alloter.png)
+
+#### Flight Alloter - Delay
+![Flight Delay](screenshots/flight_alloter_delay.png)
+
+#### Runway Utilisation Report
+![Runway Utilisation Report](screenshots/runway_report.png)
+
+## Prerequisites
+- Any Linux OS (Tested on Arch and Ubuntu)
+- gcc
+- maketools
+- gtk3 developement packages:
+
+For ubuntu based systems:
 ```
-make && ./bin/atss atss
-Ideal Test Cases
+sudo apt install libgtk-3-dev
 ```
-If atss.db doesn't exist,
+For Arch:
+```
+sudo pacman -S gtk3
+sudo pacman -S base-devel
+```
+
+## Usage Instructions
+
+- Clone the repo
+```
+git clone https://github.com/Unhandled-Exceptions/ATSS.git
+```
+- Compile the code
+```
+make
+```
+
+- Create the db files (Look at the instructions below)
+
+- Run the executable !!
+To run the CLI Version:
+```
+./bin/atss atss
+```
+To run the GUI Version:
+```
+./bin/atss-gui
+```
+
+## Sample DB Files creation instructions
+
+Before the first run, make the scripts executable
 ```
 chmod +x data_ref/db_from_csv.py scripts/create_atss_db.sh
+```
+
+### Ideal Test Cases
+#### Small DB (10 Flights)
+```
+rm data/atss.db
 ./scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_small.csv data/crew_small.csv data/atss.db
 ```
+
+#### Big DB (50 Flights)
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_big.csv data/crew_big.csv data/atss.db
 ```
-To reset the db to busy test case.
+
+### Busy Test Cases
+
+#### Small DB (10 Flights)
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh
 ./data_ref/db_from_csv.py data/flights_busy.csv data/crew_small.csv data/atss.db
 ```
-or
+#### Big DB (50 Flights)
 ```
 rm data/atss.db
 ./scripts/create_atss_db.sh
@@ -42,28 +124,24 @@ ATSS/
 │   │── sqlite3.h
 │── data/                # .csv and db files
 │── scripts/             # scripts to generate db files
-│── include/             # Project specific header files
 │── bin/                 # Compiled binaries
-│── obj/                 # Compiled object files
 │── Makefile
 ~~~
 
-> Note: bin/ obj/ are created on your pc temporarily while compiling.
-
-## TODO
-- [x] Make the allot button work
-- [ ] Add delay handling GUI
-- [ ] Add status field to the allot table.
+> Note: bin/ is created on your pc temporarily while compiling.
 
 
-## Useful commands
+
+## References:
+
+### Useful commands
 
 To see the status of the flights table
 ```
 sqlite3 -table data/atss.db "select * from flights;"
 ```
 
-## Algorithm for the alloter
+### Algorithm for the flight allotement
 ```
 We have 3 tables in the db, `flights`, `crew`, `alloted`.
 Flights are sorted according to their `runway_time` and priority.
@@ -87,8 +165,8 @@ Done.
 ```
 
 
-## Agorithm for crew
-
+### Algorithm for the crew allotment
+```
 we have 3 tables `alloted`, `crew` & `crew_allot`
 iterate through each row in `alloted`
     using a forloop, select 4 people (two pilots two attendants)
@@ -97,10 +175,10 @@ iterate through each row in `alloted`
             add an entry to the `crew_allot` table with the flight id
             add the hours_worked to `crew`
 Done.
+```
 
-
-## Finding time slots for delay
-
+### Algorithm for finding time slots for delay
+```
 Params are `flight id` and current `runway_time`
 Iterate through each runway
     Iterate through each flight after current `runway_time`,
@@ -108,55 +186,4 @@ Iterate through each runway
         yes => break;
         no slot found, switch runway. and check again.
 No runways are free, then say that the only option is to cancel.
-
-
-## Instructions for Using GUI
-
-Make sure gtk3 development packages are installed in your computer:
-For ubuntu based systems:
 ```
-sudo apt install libgtk-3-dev
-```
-For Arch:
-```
-sudo pacman -S gtk3
-sudo pacman -S base-devel
-```
-
-Now run the make command, you could optionally do a "make clean" before this:
-```
-make
-```
-> It is suggested to reset the DB once before the transition to start in a clean state
-
-## Resources for development
-
-### Official Docs
-- Overall Docs: https://docs.gtk.org/gtk3/
-- Getting Started Guide (Very Useful !!) : https://docs.gtk.org/gtk3/getting_started.html
-
-### VS Code Integration
-
-> Note: Please make sure that your configuration is not automatically taken from the makefile. If VSCode asks you to do so just say no. If it reads the configuration from makefile, it will ignore the Include Paths completely thus, gtk won't be recognised by vscode.
-
-To get Intellisense support for gtk in VSCode follow this discussion:
-https://www.reddit.com/r/GTK/comments/wc0xw7/setup_gtk3_in_vs_code/
-
-### To get a demo application:
-Install the gtk3 examples and demo package.
-In ubuntu:
-```
-sudo apt install gtk-3-examples
-```
-In Arch (not tested, hopefully will work):
-```
-sudo pacman -S gtk-3-demo
-sudo pacman -S gtk-3-examples
-```
-
-Then run the demo application:
-```
-gtk3-demo
-```
-
-You can press the "Run" button on top left after selecting the demo that you need. You can also view the source code !!
